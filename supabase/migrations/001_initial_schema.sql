@@ -157,15 +157,45 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_role_text TEXT;
+  v_role user_role;
+  v_dealer_id UUID;
 BEGIN
+  v_role_text := UPPER(TRIM(COALESCE(NEW.raw_user_meta_data->>'role', '')));
+
+  BEGIN
+    v_dealer_id := NULLIF(TRIM(COALESCE(NEW.raw_user_meta_data->>'dealer_id', '')), '')::UUID;
+  EXCEPTION WHEN OTHERS THEN
+    v_dealer_id := NULL;
+  END;
+
+  IF v_role_text = 'ADMIN' THEN
+    v_role := 'ADMIN';
+  ELSIF v_role_text = 'DEALER' THEN
+    v_role := 'DEALER';
+  ELSIF v_dealer_id IS NOT NULL THEN
+    v_role := 'DEALER';
+  ELSE
+    v_role := 'ADMIN';
+  END IF;
+
+  IF v_role = 'DEALER' AND v_dealer_id IS NULL THEN
+    RAISE EXCEPTION 'DEALER kullanıcısı için User Metadata içinde dealer_id zorunludur.';
+  END IF;
+
   INSERT INTO public.profiles (id, full_name, role, dealer_id)
   VALUES (
     NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
-    COALESCE((NEW.raw_user_meta_data->>'role')::user_role, 'DEALER'),
-    (NEW.raw_user_meta_data->>'dealer_id')::UUID
+    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'full_name'), ''), split_part(NEW.email, '@', 1)),
+    v_role,
+    CASE WHEN v_role = 'ADMIN' THEN NULL ELSE v_dealer_id END
   );
+
   RETURN NEW;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE EXCEPTION 'Profil oluşturulamadı: %', SQLERRM;
 END;
 $$;
 
