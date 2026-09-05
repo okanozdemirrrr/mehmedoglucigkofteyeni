@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../store/useAuth'
 import { formatCurrency, formatDate } from '../../utils/format'
 import { downloadCariEkstrePdf } from '../../utils/cariEkstrePdf'
+import OrderHistoryTable from '../../components/OrderHistoryTable'
 
 function ProductOrderRow({
   product,
@@ -30,7 +31,7 @@ function ProductOrderRow({
       {requiredMods.map((mod) => (
         <div key={mod.key} className="mt-3">
           <p className="text-xs font-medium text-gray-500 mb-1.5">{mod.label} *</p>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {(mod.options || []).map((opt) => (
               <button
                 key={opt}
@@ -49,7 +50,7 @@ function ProductOrderRow({
         </div>
       ))}
 
-      <div className="flex items-center gap-3 mt-3">
+      <div className="flex flex-wrap items-center gap-3 mt-3">
         <div className="flex items-center border border-gray-300 rounded-sm">
           <button
             type="button"
@@ -99,6 +100,7 @@ export default function BayiDashboard() {
   const [lastReceipt, setLastReceipt] = useState(null)
   const [dealer, setDealer] = useState(null)
   const [transactions, setTransactions] = useState([])
+  const [orders, setOrders] = useState([])
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [dealerPrices, setDealerPrices] = useState({})
@@ -119,7 +121,8 @@ export default function BayiDashboard() {
     setLoading(true)
     const dealerId = profile.dealer_id
 
-    const [txRes, dealerRes, productsRes, categoriesRes, pricesRes] = await Promise.all([
+    const [txRes, dealerRes, productsRes, categoriesRes, pricesRes, ordersRes] =
+      await Promise.all([
       supabase
         .from('transactions')
         .select('*')
@@ -136,11 +139,31 @@ export default function BayiDashboard() {
         .from('dealer_prices')
         .select('product_id, custom_price')
         .eq('dealer_id', dealerId),
+      supabase
+        .from('orders')
+        .select(
+          `
+          id,
+          total_amount,
+          status,
+          created_at,
+          order_items (
+            id,
+            quantity,
+            unit_price,
+            selected_modifiers_jsonb,
+            products ( name )
+          )
+        `
+        )
+        .eq('dealer_id', dealerId)
+        .order('created_at', { ascending: false }),
     ])
 
     const txs = txRes.data || []
     setTransactions(txs)
     setDealer(dealerRes.data || null)
+    setOrders(ordersRes.data || [])
 
     const bal = txs.reduce((sum, tx) => {
       return tx.transaction_type === 'DEBT'
@@ -375,7 +398,7 @@ export default function BayiDashboard() {
         </div>
 
         <div>
-          <div className="bg-white border border-gray-200 rounded-sm sticky top-4">
+          <div className="bg-white border border-gray-200 rounded-sm lg:sticky lg:top-4">
             <div className="px-5 py-4 border-b border-gray-200 flex items-center gap-2">
               <ShoppingCart size={16} className="text-gray-500" />
               <h2 className="text-sm font-semibold text-gray-900">Sepet</h2>
@@ -435,6 +458,15 @@ export default function BayiDashboard() {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="mt-8">
+        <OrderHistoryTable
+          orders={orders}
+          title="Hesap Dökümüm / Geçmiş Siparişlerim"
+          subtitle="Siparişlerinizin tarih/saat ve kalem kalem ürün dökümü"
+          emptyMessage="Henüz sipariş vermediniz."
+        />
       </div>
     </div>
   )

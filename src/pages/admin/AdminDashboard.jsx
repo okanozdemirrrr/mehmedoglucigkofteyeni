@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { formatCurrency, formatDate } from '../../utils/format'
 import StatusBadge from '../../components/StatusBadge'
+import { StackTableWrap, stackTableClass } from '../../components/StackTable'
 
 const NEXT_STATUS = {
   PENDING: 'PREPARING',
@@ -16,6 +17,9 @@ const STATUS_LABELS = {
   DELIVERED: 'Teslim Et',
 }
 
+/** PENDING siparişler yalnızca admin "Onayla" ile PREPARING'e alınır */
+const APPROVE_STATUS = 'PREPARING'
+
 export default function AdminDashboard() {
   const [totalRevenue, setTotalRevenue] = useState(0)
   const [totalReceivable, setTotalReceivable] = useState(0)
@@ -25,6 +29,7 @@ export default function AdminDashboard() {
   const [riskDealers, setRiskDealers] = useState([])
   const [pendingReturns, setPendingReturns] = useState([])
   const [returnActionId, setReturnActionId] = useState(null)
+  const [approvingOrderId, setApprovingOrderId] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -109,6 +114,12 @@ export default function AdminDashboard() {
     if (!error) fetchDashboardData()
   }
 
+  async function approveOrder(orderId) {
+    setApprovingOrderId(orderId)
+    await updateOrderStatus(orderId, APPROVE_STATUS)
+    setApprovingOrderId(null)
+  }
+
   async function handleReturnAction(returnId, action) {
     setReturnActionId(returnId)
     const rpcName = action === 'approve' ? 'approve_return_request' : 'reject_return_request'
@@ -163,8 +174,8 @@ export default function AdminDashboard() {
           {activeOrders.length === 0 ? (
             <p className="px-5 py-8 text-sm text-gray-400 text-center">Aktif sipariş bulunmuyor.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <StackTableWrap>
+              <table className={stackTableClass()}>
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50">
                     <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Bayi</th>
@@ -177,32 +188,47 @@ export default function AdminDashboard() {
                 <tbody>
                   {activeOrders.map((order) => (
                     <tr key={order.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                      <td className="px-5 py-3 text-gray-900">{order.dealers?.name || '-'}</td>
-                      <td className="px-5 py-3 font-medium text-gray-900">
+                      <td data-label="Bayi" className="px-5 py-3 text-gray-900">
+                        {order.dealers?.name || '-'}
+                      </td>
+                      <td data-label="Tutar" className="px-5 py-3 font-medium text-gray-900">
                         {formatCurrency(order.total_amount)}
                       </td>
-                      <td className="px-5 py-3">
+                      <td data-label="Durum" className="px-5 py-3">
                         <StatusBadge status={order.status} />
                       </td>
-                      <td className="px-5 py-3 text-gray-500 text-xs">
+                      <td data-label="Tarih" className="px-5 py-3 text-gray-500 text-xs">
                         {formatDate(order.created_at)}
                       </td>
-                      <td className="px-5 py-3">
-                        {NEXT_STATUS[order.status] && (
+                      <td data-label="İşlem" className="stack-actions px-5 py-3">
+                        {order.status === 'PENDING' ? (
                           <button
                             type="button"
-                            onClick={() => updateOrderStatus(order.id, NEXT_STATUS[order.status])}
-                            className="text-xs px-2 py-1 border border-gray-300 rounded-sm text-gray-700 hover:bg-gray-100"
+                            disabled={approvingOrderId === order.id}
+                            onClick={() => approveOrder(order.id)}
+                            className="text-xs px-3 py-1.5 font-medium text-white bg-green-600 rounded-sm hover:bg-green-700 disabled:opacity-50"
                           >
-                            {STATUS_LABELS[NEXT_STATUS[order.status]]}
+                            {approvingOrderId === order.id ? 'Onaylanıyor...' : 'Onayla'}
                           </button>
+                        ) : (
+                          NEXT_STATUS[order.status] && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateOrderStatus(order.id, NEXT_STATUS[order.status])
+                              }
+                              className="text-xs px-2 py-1 border border-gray-300 rounded-sm text-gray-700 hover:bg-gray-100"
+                            >
+                              {STATUS_LABELS[NEXT_STATUS[order.status]]}
+                            </button>
+                          )
                         )}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+            </StackTableWrap>
           )}
         </div>
 
@@ -244,8 +270,8 @@ export default function AdminDashboard() {
         {pendingReturns.length === 0 ? (
           <p className="px-5 py-8 text-sm text-gray-400 text-center">Bekleyen iade talebi yok.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <StackTableWrap>
+            <table className={stackTableClass()}>
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Bayi</th>
@@ -259,12 +285,22 @@ export default function AdminDashboard() {
               <tbody>
                 {pendingReturns.map((req) => (
                   <tr key={req.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                    <td className="px-5 py-3 text-gray-900">{req.dealers?.name || '-'}</td>
-                    <td className="px-5 py-3 text-gray-900">{req.product_name}</td>
-                    <td className="px-5 py-3 text-gray-700">{req.quantity}</td>
-                    <td className="px-5 py-3 text-gray-600">{req.reason}</td>
-                    <td className="px-5 py-3 text-xs text-gray-500">{formatDate(req.created_at)}</td>
-                    <td className="px-5 py-3">
+                    <td data-label="Bayi" className="px-5 py-3 text-gray-900">
+                      {req.dealers?.name || '-'}
+                    </td>
+                    <td data-label="Ürün" className="px-5 py-3 text-gray-900">
+                      {req.product_name}
+                    </td>
+                    <td data-label="Miktar" className="px-5 py-3 text-gray-700">
+                      {req.quantity}
+                    </td>
+                    <td data-label="Sebep" className="px-5 py-3 text-gray-600">
+                      {req.reason}
+                    </td>
+                    <td data-label="Tarih" className="px-5 py-3 text-xs text-gray-500">
+                      {formatDate(req.created_at)}
+                    </td>
+                    <td data-label="İşlem" className="stack-actions px-5 py-3">
                       <div className="flex gap-2">
                         <button
                           type="button"
@@ -288,7 +324,7 @@ export default function AdminDashboard() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </StackTableWrap>
         )}
       </div>
 
@@ -302,8 +338,8 @@ export default function AdminDashboard() {
         {riskDealers.length === 0 ? (
           <p className="px-5 py-8 text-sm text-gray-400 text-center">Kayıtlı bayi bulunmuyor.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <StackTableWrap>
+            <table className={stackTableClass()}>
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">#</th>
@@ -315,16 +351,21 @@ export default function AdminDashboard() {
               <tbody>
                 {riskDealers.map((dealer, index) => (
                   <tr key={dealer.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                    <td className="px-5 py-3 text-gray-400 text-xs">{index + 1}</td>
-                    <td className="px-5 py-3 text-gray-900">{dealer.name}</td>
+                    <td data-label="#" className="px-5 py-3 text-gray-400 text-xs">
+                      {index + 1}
+                    </td>
+                    <td data-label="Bayi" className="px-5 py-3 text-gray-900 font-medium">
+                      {dealer.name}
+                    </td>
                     <td
+                      data-label="Bakiye"
                       className={`px-5 py-3 text-right font-semibold ${
                         dealer.balance > 0 ? 'text-red-700' : 'text-gray-900'
                       }`}
                     >
                       {formatCurrency(dealer.balance)}
                     </td>
-                    <td className="px-5 py-3 text-right">
+                    <td data-label="" className="stack-actions px-5 py-3 text-right">
                       <Link
                         to={`/admin/bayiler/${dealer.id}`}
                         className="text-xs px-2 py-1 border border-gray-300 rounded-sm text-gray-700 hover:bg-gray-100"
@@ -336,7 +377,7 @@ export default function AdminDashboard() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </StackTableWrap>
         )}
       </div>
     </div>

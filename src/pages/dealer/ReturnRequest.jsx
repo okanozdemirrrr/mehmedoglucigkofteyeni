@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../store/useAuth'
 import { formatDate } from '../../utils/format'
+import { StackTableWrap, stackTableClass } from '../../components/StackTable'
 
 const REASON_OPTIONS = [
   'Paket patlak',
@@ -115,7 +116,7 @@ export default function ReturnRequest() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl w-full">
       <Link
         to="/bayi/dashboard"
         className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mb-4"
@@ -219,8 +220,8 @@ export default function ReturnRequest() {
         {requests.length === 0 ? (
           <p className="px-5 py-8 text-sm text-gray-400 text-center">Henüz iade talebi yok.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <StackTableWrap>
+            <table className={stackTableClass()}>
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Tarih</th>
@@ -233,11 +234,19 @@ export default function ReturnRequest() {
               <tbody>
                 {requests.map((req) => (
                   <tr key={req.id} className="border-b border-gray-50">
-                    <td className="px-5 py-3 text-xs text-gray-500">{formatDate(req.created_at)}</td>
-                    <td className="px-5 py-3 text-gray-900">{req.product_name}</td>
-                    <td className="px-5 py-3 text-gray-700">{req.quantity}</td>
-                    <td className="px-5 py-3 text-gray-600">{req.reason}</td>
-                    <td className="px-5 py-3">
+                    <td data-label="Tarih" className="px-5 py-3 text-xs text-gray-500">
+                      {formatDate(req.created_at)}
+                    </td>
+                    <td data-label="Ürün" className="px-5 py-3 text-gray-900">
+                      {req.product_name}
+                    </td>
+                    <td data-label="Miktar" className="px-5 py-3 text-gray-700">
+                      {req.quantity}
+                    </td>
+                    <td data-label="Sebep" className="px-5 py-3 text-gray-600 break-words">
+                      {req.reason}
+                    </td>
+                    <td data-label="Durum" className="px-5 py-3">
                       <span
                         className={`inline-block px-2 py-0.5 text-xs font-medium border rounded-sm ${STATUS_CLASS[req.status]}`}
                       >
@@ -248,7 +257,7 @@ export default function ReturnRequest() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </StackTableWrap>
         )}
       </div>
     </div>

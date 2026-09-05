@@ -1,9 +1,113 @@
 @import "tailwindcss";
 
+@theme {
+  --animate-fade-in-up: fade-in-up 0.5s ease-out both;
+  --animate-fade-out-down: fade-out-down 0.3s ease-in both;
+  --animate-scale-in: scale-in 0.5s ease-out both;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-out-down {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 body {
   margin: 0;
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
   background-color: #f9fafb;
   color: #111827;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Mobilde tabloları kart görünümüne çevir */
+@media (max-width: 767px) {
+  .stack-table,
+  .stack-table thead,
+  .stack-table tbody,
+  .stack-table tr {
+    display: block;
+    width: 100%;
+  }
+
+  .stack-table thead {
+    display: none;
+  }
+
+  .stack-table tbody tr {
+    border-bottom: 1px solid #f3f4f6;
+    padding: 12px 16px;
+  }
+
+  .stack-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .stack-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 5px 0;
+    border: none;
+    text-align: right !important;
+  }
+
+  .stack-table td::before {
+    content: attr(data-label);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #6b7280;
+    text-align: left;
+    flex-shrink: 0;
+    max-width: 45%;
+  }
+
+  .stack-table td[data-label=""]::before {
+    display: none;
+  }
+
+  .stack-table td.stack-actions {
+    justify-content: flex-end;
+    padding-top: 10px;
+    margin-top: 6px;
+    border-top: 1px solid #f3f4f6;
+  }
+
+  .stack-table td.stack-actions::before {
+    display: none;
+  }
+
+  .stack-table td.stack-actions .flex {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }

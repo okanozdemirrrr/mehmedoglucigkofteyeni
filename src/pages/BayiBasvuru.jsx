@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
+import logoYuvarlak from '../assets/logo-yuvarlak.png'
 
 const emptyForm = {
   full_name: '',
@@ -94,9 +95,16 @@ export default function BayiBasvuru() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md">
-        <div className="bg-white border border-gray-200 rounded-sm p-8">
+    <div className="relative h-dvh min-h-screen bg-[#580F1C] flex items-center justify-center px-4 overflow-hidden">
+      <img
+        src={logoYuvarlak}
+        alt=""
+        aria-hidden="true"
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] sm:w-[480px] sm:h-[480px] opacity-[0.06] pointer-events-none select-none"
+      />
+
+      <div className="relative w-full max-w-md z-10">
+        <div className="bg-white rounded-sm p-5 sm:p-8 shadow-2xl animate-fade-in-up">
           <Link
             to="/login"
             className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mb-6"
@@ -130,7 +138,7 @@ export default function BayiBasvuru() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Yaş *</label>
                   <input
@@ -156,7 +164,7 @@ export default function BayiBasvuru() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">İl *</label>
                   <input

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Building2, Store } from 'lucide-react'
 import { useAuth } from '../store/useAuth'
+import logoYuvarlak from '../assets/logo-yuvarlak.png'
 
 function mapAuthError(err) {
   const msg = String(err?.message || '').toLowerCase()
@@ -39,6 +40,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [isExiting, setIsExiting] = useState(false)
   const { signIn, signOut, profile, loading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -107,21 +109,41 @@ export default function Login() {
     }
   }
 
+  const handleBasvuruClick = (e) => {
+    e.preventDefault()
+    setIsExiting(true)
+    window.setTimeout(() => {
+      navigate('/bayi-basvuru')
+    }, 300)
+  }
+
   if (loading || (profile && profile.status === 'APPROVED')) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-sm text-gray-500">Yükleniyor...</p>
+      <div className="h-dvh min-h-screen flex items-center justify-center overflow-hidden bg-[#580F1C]">
+        <p className="text-sm text-white/70">Yükleniyor...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <div className="bg-white border border-gray-200 rounded-sm p-8">
-          <h1 className="text-center text-lg font-semibold text-[#580F1C] tracking-wide uppercase mb-1">
-            Mehmedoğlu Çiğköfte
-          </h1>
+    <div className="relative h-dvh min-h-screen bg-[#580F1C] flex items-center justify-center px-4 overflow-hidden">
+      <img
+        src={logoYuvarlak}
+        alt=""
+        aria-hidden="true"
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] sm:w-[480px] sm:h-[480px] opacity-[0.06] pointer-events-none select-none"
+      />
+
+      <div className="relative w-full max-w-sm z-10">
+        <div className="flex justify-center -mb-14 relative z-20">
+          <img
+            src={logoYuvarlak}
+            alt="Mehmedoğlu Çiğköfte"
+            className="w-24 h-24 sm:w-32 sm:h-32 rounded-full shadow-lg ring-4 ring-white object-cover animate-scale-in delay-200"
+          />
+        </div>
+
+        <div className={`bg-white rounded-sm p-5 sm:p-8 pt-14 sm:pt-16 shadow-2xl ${isExiting ? 'animate-fade-out-down' : 'animate-fade-in-up'}`}>
           <p className="text-center text-xs text-gray-500 mb-6">
             Kurumsal Sipariş Platformu
           </p>
@@ -212,10 +234,11 @@ export default function Login() {
           </form>
 
           {loginRole === 'DEALER' && (
-            <p className="text-center mt-5">
+            <p className="text-center mt-5 pt-4 border-t border-gray-100">
               <Link
                 to="/bayi-basvuru"
-                className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={handleBasvuruClick}
+                className="text-sm font-semibold text-[#580F1C] underline underline-offset-4 decoration-2 decoration-[#580F1C]/50 hover:decoration-[#580F1C] hover:text-[#3d0a13] transition-colors"
               >
                 Bayi başvurusu yapmak için tıklayın
               </Link>

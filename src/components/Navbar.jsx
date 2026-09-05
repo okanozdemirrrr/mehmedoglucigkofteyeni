@@ -23,9 +23,14 @@ export default function Navbar({ onToggleSidebar }) {
           >
             <Menu size={18} />
           </button>
-          <span className="text-sm font-semibold tracking-wide uppercase truncate">
-            Mehmedoğlu Çiğköfte
-          </span>
+          <div className="flex items-baseline min-w-0 truncate">
+            <span className="text-white font-black text-base sm:text-xl tracking-widest uppercase">
+              Mehmedoğlu
+            </span>
+            <span className="text-gray-300 font-light text-xs sm:text-sm ml-1.5 sm:ml-2 tracking-widest">
+              B2B
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-4 shrink-0">

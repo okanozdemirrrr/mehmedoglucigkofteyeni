@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Check, X } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import { formatDate } from '../../utils/format'
+import { StackTableWrap, stackTableClass } from '../../components/StackTable'
 
 export default function DealerApplications() {
   const [applications, setApplications] = useState([])
@@ -103,8 +104,8 @@ export default function DealerApplications() {
             Bekleyen başvuru bulunmuyor.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <StackTableWrap>
+            <table className={stackTableClass()}>
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Ad Soyad</th>
@@ -120,17 +121,29 @@ export default function DealerApplications() {
               <tbody>
                 {applications.map((app) => (
                   <tr key={app.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                    <td className="px-5 py-3 font-medium text-gray-900">{app.full_name}</td>
-                    <td className="px-5 py-3 text-gray-700">{app.email || '—'}</td>
-                    <td className="px-5 py-3 text-gray-700">{app.age ?? '—'}</td>
-                    <td className="px-5 py-3 text-gray-700">
+                    <td data-label="Ad Soyad" className="px-5 py-3 font-medium text-gray-900">
+                      {app.full_name}
+                    </td>
+                    <td data-label="E-posta" className="px-5 py-3 text-gray-700 break-all">
+                      {app.email || '—'}
+                    </td>
+                    <td data-label="Yaş" className="px-5 py-3 text-gray-700">
+                      {app.age ?? '—'}
+                    </td>
+                    <td data-label="İl / İlçe" className="px-5 py-3 text-gray-700">
                       {[app.city, app.district].filter(Boolean).join(' / ') || '—'}
                     </td>
-                    <td className="px-5 py-3 text-gray-700">{app.tax_no || '—'}</td>
-                    <td className="px-5 py-3 text-gray-700">{app.phone || '—'}</td>
-                    <td className="px-5 py-3 text-xs text-gray-500">{formatDate(app.created_at)}</td>
-                    <td className="px-5 py-3">
-                      <div className="flex justify-end gap-2">
+                    <td data-label="Vergi No" className="px-5 py-3 text-gray-700">
+                      {app.tax_no || '—'}
+                    </td>
+                    <td data-label="Telefon" className="px-5 py-3 text-gray-700">
+                      {app.phone || '—'}
+                    </td>
+                    <td data-label="Tarih" className="px-5 py-3 text-xs text-gray-500">
+                      {formatDate(app.created_at)}
+                    </td>
+                    <td data-label="İşlem" className="stack-actions px-5 py-3">
+                      <div className="flex flex-wrap justify-end gap-2">
                         <button
                           type="button"
                           disabled={actionId === app.id}
@@ -155,7 +168,7 @@ export default function DealerApplications() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </StackTableWrap>
         )}
       </div>
     </div>

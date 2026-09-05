@@ -7,6 +7,7 @@ import {
   RotateCcw,
 } from 'lucide-react'
 import { useAuth } from '../store/useAuth'
+import logoSidebar from '../assets/logo-yuvarlak.png'
 
 const ADMIN_ITEMS = [
   { to: '/admin/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
@@ -53,6 +54,13 @@ export default function Sidebar({ isOpen, onClose }) {
         `}
       >
         <nav className="h-full w-56 overflow-y-auto py-3 px-2">
+          <div className="pb-4 mb-4 border-b border-gray-200">
+            <img
+              src={logoSidebar}
+              alt="Mehmedoğlu Çiğköfte"
+              className="w-24 h-24 mx-auto object-contain"
+            />
+          </div>
           <ul className="space-y-0.5">
             {items.map((item) => {
               const isBayilerLink = item.to === '/admin/bayiler'

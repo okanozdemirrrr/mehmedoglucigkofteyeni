@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import { formatCurrency } from '../../utils/format'
+import { StackTableWrap, stackTableClass } from '../../components/StackTable'
 
 const emptyForm = {
   name: '',
@@ -96,7 +97,7 @@ export default function DealerList() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <h1 className="text-lg font-semibold text-gray-900">Bayiler</h1>
         <button
           type="button"
@@ -114,8 +115,8 @@ export default function DealerList() {
             Kayıtlı bayi bulunmuyor.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <StackTableWrap>
+            <table className={stackTableClass()}>
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Bayi Adı</th>
@@ -128,13 +129,19 @@ export default function DealerList() {
               <tbody>
                 {dealers.map((dealer) => (
                   <tr key={dealer.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                    <td className="px-5 py-3 text-gray-900">{dealer.name}</td>
-                    <td className="px-5 py-3 text-gray-500">{dealer.tax_no || '-'}</td>
-                    <td className="px-5 py-3 text-gray-500">{dealer.phone || '-'}</td>
-                    <td className="px-5 py-3 text-right font-medium text-gray-900">
+                    <td data-label="Bayi Adı" className="px-5 py-3 text-gray-900 font-medium">
+                      {dealer.name}
+                    </td>
+                    <td data-label="Vergi No" className="px-5 py-3 text-gray-500">
+                      {dealer.tax_no || '-'}
+                    </td>
+                    <td data-label="Telefon" className="px-5 py-3 text-gray-500">
+                      {dealer.phone || '-'}
+                    </td>
+                    <td data-label="Bakiye" className="px-5 py-3 text-right font-medium text-gray-900">
                       {formatCurrency(balances[dealer.id] || 0)}
                     </td>
-                    <td className="px-5 py-3 text-right">
+                    <td data-label="" className="stack-actions px-5 py-3 text-right">
                       <Link
                         to={`/admin/bayiler/${dealer.id}`}
                         className="text-xs px-2 py-1 border border-gray-300 rounded-sm text-gray-700 hover:bg-gray-100 transition-colors"
@@ -146,7 +153,7 @@ export default function DealerList() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </StackTableWrap>
         )}
       </div>
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import { formatCurrency } from '../../utils/format'
+import { StackTableWrap, stackTableClass } from '../../components/StackTable'
 
 const SPICINESS_MODIFIER = [
   { key: 'spiciness', label: 'Acılık', required: true, options: ['Acılı', 'Acısız'] },
@@ -306,8 +307,8 @@ export default function MenuManagement() {
                 Bu kategoride henüz ürün yok.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <StackTableWrap>
+                <table className={stackTableClass()}>
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50">
                       <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Ürün</th>
@@ -319,11 +320,13 @@ export default function MenuManagement() {
                   <tbody>
                     {products.map((p) => (
                       <tr key={p.id} className="border-b border-gray-50">
-                        <td className="px-5 py-3 text-gray-900">{p.name}</td>
-                        <td className="px-5 py-3 text-right text-gray-700">
+                        <td data-label="Ürün" className="px-5 py-3 text-gray-900 font-medium">
+                          {p.name}
+                        </td>
+                        <td data-label="Fiyat" className="px-5 py-3 text-right text-gray-700">
                           {formatCurrency(p.base_price)}
                         </td>
-                        <td className="px-5 py-3">
+                        <td data-label="Durum" className="px-5 py-3">
                           <span
                             className={`inline-block px-2 py-0.5 text-xs border rounded-sm ${
                               p.is_active
@@ -334,7 +337,7 @@ export default function MenuManagement() {
                             {p.is_active ? 'Aktif' : 'Pasif'}
                           </span>
                         </td>
-                        <td className="px-5 py-3 text-right">
+                        <td data-label="" className="stack-actions px-5 py-3 text-right">
                           <button
                             type="button"
                             title="Ürünü sil"
@@ -348,7 +351,7 @@ export default function MenuManagement() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </StackTableWrap>
             )}
           </div>
 
