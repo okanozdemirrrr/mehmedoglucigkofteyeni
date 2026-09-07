@@ -24,6 +24,12 @@ export default function Gizlilik() {
               paylaşılmaz veya ticari amaçla satılmaz. Verileriniz güvenli sunucularda 
               korunmaktadır.
             </p>
+            
+            <p className="mt-4">
+              Kullanıcı hesaplarının ve ilişkili verilerin silinmesi talepleri için doğrudan 
+              sistem yöneticisi ile iletişime geçilmelidir. Talepleriniz 7 iş günü içerisinde 
+              işleme alınarak verileriniz sistemden kalıcı olarak silinecektir.
+            </p>
           </div>
         </div>
       </div>
