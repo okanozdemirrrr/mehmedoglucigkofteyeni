@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Mehmedoglu B2B</string>
+    <string name="title_activity_main">Mehmedoglu B2B</string>
+    <string name="package_name">com.mergen.mehmedoglu</string>
+    <string name="custom_url_scheme">com.mergen.mehmedoglu</string>
+</resources>
