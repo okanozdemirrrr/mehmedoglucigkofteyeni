@@ -139,7 +139,7 @@ export default function Login() {
           <img
             src={logoYuvarlak}
             alt="Mehmedoğlu Çiğköfte"
-            className="w-24 h-24 sm:w-32 sm:h-32 rounded-full shadow-lg ring-4 ring-white object-cover animate-scale-in delay-200"
+            className="w-30 h-30 sm:w-36 sm:h-36 rounded-full shadow-lg ring-4 ring-white object-cover animate-scale-in delay-200"
           />
         </div>
 

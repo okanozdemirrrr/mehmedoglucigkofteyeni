@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import { formatCurrency, formatDate } from '../../utils/format'
 import StatusBadge from '../../components/StatusBadge'
@@ -31,6 +32,7 @@ export default function AdminDashboard() {
   const [returnActionId, setReturnActionId] = useState(null)
   const [approvingOrderId, setApprovingOrderId] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [expandedOrders, setExpandedOrders] = useState({})
 
   useEffect(() => {
     fetchDashboardData()
@@ -57,7 +59,7 @@ export default function AdminDashboard() {
       supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
       supabase
         .from('orders')
-        .select('id, total_amount, status, created_at, dealers ( name )')
+        .select('id, total_amount, status, created_at, dealers ( name ), order_items ( id, quantity, unit_price, product:products ( name ), selected_modifiers_jsonb )')
         .in('status', ['PENDING', 'PREPARING', 'ON_THE_WAY'])
         .order('created_at', { ascending: false }),
       supabase
@@ -128,6 +130,13 @@ export default function AdminDashboard() {
     if (!error) fetchDashboardData()
   }
 
+  function toggleOrderExpand(orderId) {
+    setExpandedOrders((prev) => ({
+      ...prev,
+      [orderId]: !prev[orderId],
+    }))
+  }
+
   if (loading) {
     return <p className="text-sm text-gray-500">Kokpit yükleniyor...</p>
   }
@@ -178,54 +187,121 @@ export default function AdminDashboard() {
               <table className={stackTableClass()}>
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50">
-                    <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Bayi</th>
-                    <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Tutar</th>
-                    <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Durum</th>
-                    <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Tarih</th>
-                    <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">İşlem</th>
+                    <th className="text-left px-2 py-2.5 text-xs font-medium text-gray-500 w-8 md:table-cell hidden"></th>
+                    <th className="text-left px-3 md:px-5 py-2.5 text-xs font-medium text-gray-500">Bayi</th>
+                    <th className="text-left px-3 md:px-5 py-2.5 text-xs font-medium text-gray-500">Tutar</th>
+                    <th className="text-left px-3 md:px-5 py-2.5 text-xs font-medium text-gray-500">Durum</th>
+                    <th className="text-left px-3 md:px-5 py-2.5 text-xs font-medium text-gray-500">Tarih</th>
+                    <th className="text-left px-3 md:px-5 py-2.5 text-xs font-medium text-gray-500">İşlem</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {activeOrders.map((order) => (
-                    <tr key={order.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                      <td data-label="Bayi" className="px-5 py-3 text-gray-900">
-                        {order.dealers?.name || '-'}
-                      </td>
-                      <td data-label="Tutar" className="px-5 py-3 font-medium text-gray-900">
-                        {formatCurrency(order.total_amount)}
-                      </td>
-                      <td data-label="Durum" className="px-5 py-3">
-                        <StatusBadge status={order.status} />
-                      </td>
-                      <td data-label="Tarih" className="px-5 py-3 text-gray-500 text-xs">
-                        {formatDate(order.created_at)}
-                      </td>
-                      <td data-label="İşlem" className="stack-actions px-5 py-3">
-                        {order.status === 'PENDING' ? (
-                          <button
-                            type="button"
-                            disabled={approvingOrderId === order.id}
-                            onClick={() => approveOrder(order.id)}
-                            className="text-xs px-3 py-1.5 font-medium text-white bg-green-600 rounded-sm hover:bg-green-700 disabled:opacity-50"
-                          >
-                            {approvingOrderId === order.id ? 'Onaylanıyor...' : 'Onayla'}
-                          </button>
-                        ) : (
-                          NEXT_STATUS[order.status] && (
+                  {activeOrders.map((order) => {
+                    const isExpanded = expandedOrders[order.id]
+                    return (
+                      <>
+                        <tr key={order.id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                          <td className="px-2 py-3 text-center md:table-cell hidden">
                             <button
                               type="button"
-                              onClick={() =>
-                                updateOrderStatus(order.id, NEXT_STATUS[order.status])
-                              }
-                              className="text-xs px-2 py-1 border border-gray-300 rounded-sm text-gray-700 hover:bg-gray-100"
+                              onClick={() => toggleOrderExpand(order.id)}
+                              className="text-gray-400 hover:text-gray-700 focus:outline-none"
+                              aria-label="Sipariş detaylarını göster/gizle"
                             >
-                              {STATUS_LABELS[NEXT_STATUS[order.status]]}
+                              {isExpanded ? (
+                                <ChevronDown className="w-4 h-4" />
+                              ) : (
+                                <ChevronRight className="w-4 h-4" />
+                              )}
                             </button>
-                          )
+                          </td>
+                          <td data-label="Bayi" className="px-3 md:px-5 py-3 text-gray-900">
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => toggleOrderExpand(order.id)}
+                                className="md:hidden text-gray-400 hover:text-gray-700 focus:outline-none shrink-0"
+                                aria-label="Sipariş detaylarını göster/gizle"
+                              >
+                                {isExpanded ? (
+                                  <ChevronDown className="w-4 h-4" />
+                                ) : (
+                                  <ChevronRight className="w-4 h-4" />
+                                )}
+                              </button>
+                              <span>{order.dealers?.name || '-'}</span>
+                            </div>
+                          </td>
+                          <td data-label="Tutar" className="px-3 md:px-5 py-3 font-medium text-gray-900">
+                            {formatCurrency(order.total_amount)}
+                          </td>
+                          <td data-label="Durum" className="px-3 md:px-5 py-3">
+                            <StatusBadge status={order.status} />
+                          </td>
+                          <td data-label="Tarih" className="px-3 md:px-5 py-3 text-gray-500 text-xs">
+                            {formatDate(order.created_at)}
+                          </td>
+                          <td data-label="İşlem" className="stack-actions px-3 md:px-5 py-3">
+                            {order.status === 'PENDING' ? (
+                              <button
+                                type="button"
+                                disabled={approvingOrderId === order.id}
+                                onClick={() => approveOrder(order.id)}
+                                className="text-xs px-3 py-1.5 font-medium text-white bg-green-600 rounded-sm hover:bg-green-700 disabled:opacity-50"
+                              >
+                                {approvingOrderId === order.id ? 'Onaylanıyor...' : 'Onayla'}
+                              </button>
+                            ) : (
+                              NEXT_STATUS[order.status] && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    updateOrderStatus(order.id, NEXT_STATUS[order.status])
+                                  }
+                                  className="text-xs px-2 py-1 border border-gray-300 rounded-sm text-gray-700 hover:bg-gray-100"
+                                >
+                                  {STATUS_LABELS[NEXT_STATUS[order.status]]}
+                                </button>
+                              )
+                            )}
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr className="bg-gray-50">
+                            <td colSpan="6" className="px-3 md:px-5 py-4">
+                              <div className="space-y-2">
+                                <p className="text-xs font-semibold text-gray-700 mb-2">Sipariş İçeriği:</p>
+                                {order.order_items && order.order_items.length > 0 ? (
+                                  <ul className="space-y-1.5">
+                                    {order.order_items.map((item) => {
+                                      const options = item.selected_modifiers_jsonb
+                                        ? Object.entries(item.selected_modifiers_jsonb)
+                                            .map(([key, val]) => `${key}: ${val}`)
+                                            .join(', ')
+                                        : null
+                                      return (
+                                        <li key={item.id} className="text-sm text-gray-800">
+                                          <span className="font-medium">{item.quantity} x</span>{' '}
+                                          {item.product?.name || 'Ürün adı yok'}
+                                          {options && (
+                                            <span className="text-xs text-gray-600 ml-2">
+                                              ({options})
+                                            </span>
+                                          )}
+                                        </li>
+                                      )
+                                    })}
+                                  </ul>
+                                ) : (
+                                  <p className="text-xs text-gray-400">Sipariş içeriği bulunamadı.</p>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
                         )}
-                      </td>
-                    </tr>
-                  ))}
+                      </>
+                    )
+                  })}
                 </tbody>
               </table>
             </StackTableWrap>
