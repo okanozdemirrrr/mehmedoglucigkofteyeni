@@ -1,0 +1,9 @@
+{
+  "appId": "com.mergen.mehmedoglu",
+  "appName": "Mehmedoglu B2B",
+  "webDir": "dist",
+  "server": {
+    "cleartext": true,
+    "androidScheme": "https"
+  }
+}

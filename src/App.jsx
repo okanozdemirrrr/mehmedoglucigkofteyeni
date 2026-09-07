@@ -14,6 +14,7 @@ import MenuManagement from './pages/admin/MenuManagement'
 import DealerApplications from './pages/admin/DealerApplications'
 import BayiDashboard from './pages/dealer/BayiDashboard'
 import ReturnRequest from './pages/dealer/ReturnRequest'
+import Gizlilik from './pages/Gizlilik'
 
 function RootRedirect() {
   const { user, profile, loading } = useAuth()
@@ -52,6 +53,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/bayi-basvuru" element={<BayiBasvuru />} />
+        <Route path="/gizlilik" element={<Gizlilik />} />
 
         <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
           <Route element={<Layout />}>
