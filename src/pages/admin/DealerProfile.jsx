@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabaseClient'
 import { formatCurrency, formatDate } from '../../utils/format'
 import { downloadCariEkstrePdf } from '../../utils/cariEkstrePdf'
 import OrderHistoryTable from '../../components/OrderHistoryTable'
+import DealerCustomPricing from '../../components/DealerCustomPricing'
 import { StackTableWrap, stackTableClass } from '../../components/StackTable'
 
 function isForeignKeyError(error) {
@@ -276,6 +277,10 @@ export default function DealerProfile() {
             </p>
           )}
         </div>
+      </div>
+
+      <div className="mb-6">
+        <DealerCustomPricing dealerId={dealerId} />
       </div>
 
       <div className="bg-white border border-gray-200 rounded-sm mb-6">
