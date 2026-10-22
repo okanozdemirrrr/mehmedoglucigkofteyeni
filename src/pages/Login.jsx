@@ -15,6 +15,9 @@ function mapAuthError(err) {
   if (msg.includes('user not found')) {
     return 'Bu e-posta ile kayıtlı kullanıcı bulunamadı.'
   }
+  if (msg.includes('failed to fetch')) {
+    return 'Veritabanı sunucusuna ulaşılamadı. Supabase projenizin aktif (Paused olmadığından) ve .env adresinizin doğru olduğundan emin olun.'
+  }
   return err?.message || 'Giriş başarısız'
 }
 
