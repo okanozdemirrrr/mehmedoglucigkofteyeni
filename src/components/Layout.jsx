@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
+import NotificationToast from './NotificationToast'
+import { useAuth } from '../store/useAuth'
+import { useNotifications } from '../store/useNotifications'
+import { registerPushToken } from '../lib/notifications'
 
 function getInitialSidebarOpen() {
   if (typeof window === 'undefined') return false
@@ -10,6 +14,9 @@ function getInitialSidebarOpen() {
 
 export default function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(getInitialSidebarOpen)
+  const user = useAuth((s) => s.user)
+  const subscribe = useNotifications((s) => s.subscribe)
+  const unsubscribe = useNotifications((s) => s.unsubscribe)
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 768px)')
@@ -19,6 +26,18 @@ export default function Layout() {
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
   }, [])
+
+  useEffect(() => {
+    if (!user?.id) {
+      unsubscribe()
+      return
+    }
+
+    subscribe(user.id)
+    registerPushToken().catch(() => {})
+
+    return () => unsubscribe()
+  }, [user?.id, subscribe, unsubscribe])
 
   function toggleSidebar() {
     setIsSidebarOpen((open) => !open)
@@ -37,6 +56,8 @@ export default function Layout() {
           </div>
         </main>
       </div>
+
+      <NotificationToast />
     </div>
   )
 }

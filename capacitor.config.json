@@ -4,6 +4,16 @@
   "webDir": "dist",
   "server": {
     "cleartext": true,
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "iosScheme": "https"
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#580F1C"
+    }
   }
 }

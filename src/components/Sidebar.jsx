@@ -40,7 +40,7 @@ export default function Sidebar({ isOpen, onClose }) {
         <button
           type="button"
           aria-label="Menüyü kapat"
-          className="fixed inset-0 top-14 z-20 bg-black/30 md:hidden"
+          className="fixed inset-0 z-40 bg-black/30 md:hidden"
           onClick={onClose}
         />
       )}
@@ -49,9 +49,10 @@ export default function Sidebar({ isOpen, onClose }) {
         className={`
           shrink-0 bg-white border-r border-gray-200
           transition-all duration-200 ease-out
-          fixed md:static top-14 bottom-0 left-0 z-20
+          fixed md:static top-0 bottom-0 left-0 z-50
           ${isOpen ? 'w-56 translate-x-0' : 'w-0 -translate-x-full md:translate-x-0 md:w-0 overflow-hidden border-r-0'}
         `}
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
         <nav className="h-full w-56 overflow-y-auto py-3 px-2">
           <div className="pb-4 mb-4 border-b border-gray-200">

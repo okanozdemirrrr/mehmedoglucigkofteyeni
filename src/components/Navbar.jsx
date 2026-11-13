@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { Menu, LogOut } from 'lucide-react'
 import { useAuth } from '../store/useAuth'
+import NotificationBell from './NotificationBell'
 
 export default function Navbar({ onToggleSidebar }) {
   const { profile, signOut } = useAuth()
@@ -12,7 +13,10 @@ export default function Navbar({ onToggleSidebar }) {
   }
 
   return (
-    <header className="bg-[#580F1C] text-white border-b border-[#3d0a13] shrink-0 z-30">
+    <header
+      className="sticky top-0 bg-[#580F1C] text-white border-b border-[#3d0a13] shrink-0 z-30"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+    >
       <div className="h-14 px-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <button
@@ -33,7 +37,8 @@ export default function Navbar({ onToggleSidebar }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+          <NotificationBell />
           <span className="text-xs text-white/70 hidden sm:block">
             {profile?.full_name}
           </span>

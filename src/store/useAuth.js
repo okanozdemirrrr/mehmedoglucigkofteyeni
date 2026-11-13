@@ -77,6 +77,13 @@ export const useAuth = create((set, get) => ({
 
     if (data.user) {
       await get().fetchProfile(data.user)
+      // Push izni + token kaydı (native / web)
+      try {
+        const { registerPushToken } = await import('../lib/notifications')
+        void registerPushToken()
+      } catch {
+        /* push opsiyonel */
+      }
     }
 
     return data
