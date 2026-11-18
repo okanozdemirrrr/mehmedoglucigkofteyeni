@@ -6,19 +6,23 @@ import logoYuvarlak from '../assets/logo-yuvarlak.png'
 
 function mapAuthError(err) {
   const msg = String(err?.message || '').toLowerCase()
-  if (msg.includes('invalid login credentials')) {
-    return 'E-posta veya şifre hatalı. Başvuruyu admin onayladıktan sonra tekrar deneyin.'
-  }
-  if (msg.includes('email not confirmed')) {
+  if (msg.includes('invalid login credentials') || msg.includes('email not confirmed')) {
     return 'E-posta veya şifre hatalı. Başvuruyu admin onayladıktan sonra tekrar deneyin.'
   }
   if (msg.includes('user not found')) {
     return 'Bu e-posta ile kayıtlı kullanıcı bulunamadı.'
   }
-  if (msg.includes('failed to fetch')) {
-    return 'Veritabanı sunucusuna ulaşılamadı. Supabase projenizin aktif (Paused olmadığından) ve .env adresinizin doğru olduğundan emin olun.'
+  if (
+    msg.includes('failed to fetch') ||
+    msg.includes('network') ||
+    msg.includes('fetch') ||
+    msg.includes('paused') ||
+    msg.includes('supabase') ||
+    msg.includes('.env')
+  ) {
+    return 'Sunucuya bağlanılamadı, lütfen tekrar deneyin.'
   }
-  return err?.message || 'Giriş başarısız'
+  return 'İşlem sırasında bir hata oluştu.'
 }
 
 const ROLES = [
@@ -247,6 +251,15 @@ export default function Login() {
               </Link>
             </p>
           )}
+
+          <p className="text-center mt-4">
+            <Link
+              to="/gizlilik"
+              className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2 transition-colors"
+            >
+              Gizlilik Politikası
+            </Link>
+          </p>
         </div>
       </div>
     </div>

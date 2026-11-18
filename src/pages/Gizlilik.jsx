@@ -26,9 +26,20 @@ export default function Gizlilik() {
             </p>
             
             <p className="mt-4">
-              Kullanıcı hesaplarının ve ilişkili verilerin silinmesi talepleri için doğrudan 
-              sistem yöneticisi ile iletişime geçilmelidir. Talepleriniz 7 iş günü içerisinde 
-              işleme alınarak verileriniz sistemden kalıcı olarak silinecektir.
+              Kullanıcı hesaplarının ve ilişkili verilerin silinmesi uygulamadaki Hesap Ayarları
+              ekranından yapılabilir. Alternatif olarak destek ekibimize yazabilirsiniz.
+              Talepleriniz 7 iş günü içerisinde işleme alınarak verileriniz sistemden kalıcı
+              olarak silinecektir.
+            </p>
+
+            <p className="mt-6 pt-4 border-t border-gray-100 text-sm text-gray-700">
+              Uygulama destek, şikayet ve hesap silme talepleriniz için bize ulaşın:{' '}
+              <a
+                href="mailto:destek@regonteknoloji.com"
+                className="text-[#580F1C] font-medium underline underline-offset-2 hover:text-[#3d0a13]"
+              >
+                destek@regonteknoloji.com
+              </a>
             </p>
           </div>
         </div>

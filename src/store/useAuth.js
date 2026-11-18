@@ -66,7 +66,7 @@ export const useAuth = create((set, get) => ({
   },
 
   signIn: async (email, password) => {
-    if (!supabase) throw new Error('Supabase yapılandırılmamış')
+    if (!supabase) throw new Error('Sunucuya bağlanılamadı, lütfen tekrar deneyin.')
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -91,6 +91,20 @@ export const useAuth = create((set, get) => ({
 
   signOut: async () => {
     if (supabase) await supabase.auth.signOut()
+    set({ user: null, profile: null, loading: false })
+  },
+
+  deleteAccount: async () => {
+    if (!supabase) throw new Error('Sunucuya bağlanılamadı, lütfen tekrar deneyin.')
+
+    const { error } = await supabase.rpc('delete_own_account')
+    if (error) throw error
+
+    try {
+      await supabase.auth.signOut()
+    } catch {
+      /* hesap zaten silinmiş olabilir */
+    }
     set({ user: null, profile: null, loading: false })
   },
 }))

@@ -24,6 +24,7 @@ export default function BayiBasvuru() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [kvkkAccepted, setKvkkAccepted] = useState(false)
 
   function handleChange(e) {
     const { name, value } = e.target
@@ -44,6 +45,12 @@ export default function BayiBasvuru() {
 
     if (form.password.length < 6) {
       setError('Şifre en az 6 karakter olmalıdır.')
+      setSubmitting(false)
+      return
+    }
+
+    if (!kvkkAccepted) {
+      setError('Devam etmek için Gizlilik Politikası ve KVKK metnini onaylamanız gerekir.')
       setSubmitting(false)
       return
     }
@@ -77,6 +84,7 @@ export default function BayiBasvuru() {
 
       setSuccess(true)
       setForm(emptyForm)
+      setKvkkAccepted(false)
 
       window.setTimeout(() => {
         navigate('/login', {
@@ -88,7 +96,25 @@ export default function BayiBasvuru() {
         })
       }, 1800)
     } catch (err) {
-      setError(err.message || 'Başvuru gönderilemedi')
+      const msg = String(err?.message || '').toLowerCase()
+      if (
+        msg.includes('already registered') ||
+        msg.includes('already been registered') ||
+        msg.includes('user already')
+      ) {
+        setError('Bu e-posta ile daha önce başvuru yapılmış.')
+      } else if (
+        msg.includes('failed to fetch') ||
+        msg.includes('network') ||
+        msg.includes('fetch') ||
+        msg.includes('paused') ||
+        msg.includes('supabase') ||
+        msg.includes('.env')
+      ) {
+        setError('Sunucuya bağlanılamadı, lütfen tekrar deneyin.')
+      } else {
+        setError('İşlem sırasında bir hata oluştu.')
+      }
     } finally {
       setSubmitting(false)
     }
@@ -228,6 +254,26 @@ export default function BayiBasvuru() {
                 </p>
               </div>
 
+              <label className="flex items-start gap-2.5 cursor-pointer select-none pt-1">
+                <input
+                  type="checkbox"
+                  checked={kvkkAccepted}
+                  onChange={(e) => setKvkkAccepted(e.target.checked)}
+                  required
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#580F1C] border-gray-300 rounded-sm"
+                />
+                <span className="text-xs text-gray-600 leading-relaxed">
+                  <Link
+                    to="/gizlilik"
+                    className="text-[#580F1C] font-medium underline underline-offset-2 hover:text-[#3d0a13]"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Gizlilik Politikası
+                  </Link>
+                  {' '}ve KVKK metnini okudum, onaylıyorum
+                </span>
+              </label>
+
               {error && (
                 <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-sm px-3 py-2">
                   {error}
@@ -236,7 +282,7 @@ export default function BayiBasvuru() {
 
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || !kvkkAccepted}
                 className="w-full py-2.5 text-sm font-medium text-white bg-[#580F1C] rounded-sm hover:bg-[#3d0a13] disabled:opacity-50 transition-colors"
               >
                 {submitting ? 'Gönderiliyor...' : 'Başvuru Gönder'}

@@ -14,6 +14,7 @@ import MenuManagement from './pages/admin/MenuManagement'
 import DealerApplications from './pages/admin/DealerApplications'
 import BayiDashboard from './pages/dealer/BayiDashboard'
 import ReturnRequest from './pages/dealer/ReturnRequest'
+import AccountSettings from './pages/AccountSettings'
 import Gizlilik from './pages/Gizlilik'
 
 function RootRedirect() {
@@ -62,6 +63,7 @@ export default function App() {
             <Route path="/admin/bayiler/:dealerId" element={<DealerProfile />} />
             <Route path="/admin/basvurular" element={<DealerApplications />} />
             <Route path="/admin/menu" element={<MenuManagement />} />
+            <Route path="/admin/ayarlar" element={<AccountSettings />} />
           </Route>
         </Route>
 
@@ -69,6 +71,7 @@ export default function App() {
           <Route element={<Layout />}>
             <Route path="/bayi/dashboard" element={<BayiDashboard />} />
             <Route path="/bayi/iade" element={<ReturnRequest />} />
+            <Route path="/bayi/ayarlar" element={<AccountSettings />} />
           </Route>
         </Route>
 

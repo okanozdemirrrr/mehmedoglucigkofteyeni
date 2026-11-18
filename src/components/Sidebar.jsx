@@ -5,6 +5,7 @@ import {
   ClipboardList,
   UtensilsCrossed,
   RotateCcw,
+  Settings,
 } from 'lucide-react'
 import { useAuth } from '../store/useAuth'
 import logoSidebar from '../assets/logo-yuvarlak.png'
@@ -14,11 +15,13 @@ const ADMIN_ITEMS = [
   { to: '/admin/bayiler', label: 'Bayiler', Icon: Users },
   { to: '/admin/basvurular', label: 'Bayi Başvuruları', Icon: ClipboardList },
   { to: '/admin/menu', label: 'Menü Yönetimi', Icon: UtensilsCrossed },
+  { to: '/admin/ayarlar', label: 'Hesap Ayarları', Icon: Settings },
 ]
 
 const DEALER_ITEMS = [
   { to: '/bayi/dashboard', label: 'Sipariş Paneli', Icon: LayoutDashboard },
   { to: '/bayi/iade', label: 'İade / Fire', Icon: RotateCcw },
+  { to: '/bayi/ayarlar', label: 'Hesap Ayarları', Icon: Settings },
 ]
 
 function linkClass(isActive) {
