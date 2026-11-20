@@ -44,14 +44,14 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col safe-area-pad-b pb-[env(safe-area-inset-bottom)]">
+    <div className="min-h-dvh bg-gray-50 flex flex-col safe-area-pad-b pb-[env(safe-area-inset-bottom)] max-w-[100vw]">
       <Navbar onToggleSidebar={toggleSidebar} />
 
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0 min-w-0 overflow-x-clip">
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-        <main className="flex-1 min-w-0 overflow-auto">
-          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <main className="flex-1 min-w-0 overflow-x-clip overflow-y-auto">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 w-full">
             <Outlet />
           </div>
         </main>

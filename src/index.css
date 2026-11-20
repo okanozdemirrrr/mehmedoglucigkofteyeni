@@ -39,19 +39,24 @@
   }
 }
 
+html {
+  overflow-x: clip;
+}
+
 html,
 body,
 #root {
   margin: 0;
   padding: 0;
   min-height: 100%;
+  max-width: 100%;
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
   background-color: #f9fafb;
   color: #111827;
   -webkit-font-smoothing: antialiased;
 
   /* Mobil Native Hissiyatı Kuralları */
-  overflow-x: hidden;
+  overflow-x: clip;
   user-select: none;
   -webkit-user-select: none;
   touch-action: pan-y;
@@ -84,10 +89,27 @@ body {
 /* Kullanıcının form alanlarına yazı yazabilmesi ve imleç seçebilmesi için */
 input,
 textarea,
+select,
 [contenteditable="true"] {
   user-select: text;
   -webkit-user-select: text;
   scroll-margin-bottom: 24vh;
+  /* iOS focus zoom engeli: en az 16px */
+  font-size: 16px;
+}
+
+@media (min-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: inherit;
+  }
+}
+
+/* Dokunma hedefi yardımcısı */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
 }
 
 /* Mobilde tabloları kart görünümüne çevir */
@@ -113,14 +135,20 @@ textarea,
     border-bottom: none;
   }
 
+  /* Kartlar arası ayırıcı */
+  .stack-table tbody tr:not(.stack-expand-row) {
+    border-bottom: 1px solid #e5e7eb;
+  }
+
   .stack-table td {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    padding: 5px 0;
+    padding: 6px 0;
     border: none;
     text-align: right !important;
+    max-width: 100%;
   }
 
   .stack-table td::before {
@@ -130,11 +158,20 @@ textarea,
     color: #6b7280;
     text-align: left;
     flex-shrink: 0;
-    max-width: 45%;
+    max-width: 40%;
   }
 
   .stack-table td[data-label=""]::before {
     display: none;
+  }
+
+  /* stack-table display:flex, Tailwind hidden / md:table-cell ezmesin */
+  .stack-table td.stack-hide-mobile,
+  .stack-table th.stack-hide-mobile,
+  .stack-table .stack-hide-mobile,
+  .stack-table td.hidden,
+  .stack-table th.hidden {
+    display: none !important;
   }
 
   .stack-table td.stack-actions {
@@ -151,5 +188,24 @@ textarea,
   .stack-table td.stack-actions .flex {
     width: 100%;
     justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Genişletilmiş satır: etiket yok, tam genişlik */
+  .stack-table tr.stack-expand-row {
+    background: #f9fafb;
+    padding-top: 0;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .stack-table tr.stack-expand-row td {
+    display: block;
+    text-align: left !important;
+    padding: 8px 0 12px;
+  }
+
+  .stack-table tr.stack-expand-row td::before {
+    display: none;
   }
 }

@@ -9,7 +9,8 @@
     "build:mobile": "npm run build && npx cap sync",
     "lint": "oxlint",
     "preview": "vite preview",
-    "seed:demo": "node scripts/seed-app-store-demo.mjs"
+    "seed:demo": "node scripts/seed-app-store-demo.mjs",
+    "ui:mobile-check": "node scripts/mobile-ui-check.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.1",
@@ -33,6 +34,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "oxlint": "^1.71.0",
+    "playwright": "^1.65.1",
     "tailwindcss": "^4.3.2",
     "vite": "^8.1.1"
   }
