@@ -3,13 +3,20 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../store/useAuth'
 
 const SUPPORT_EMAIL = 'destek@regonteknoloji.com'
+const DEMO_EMAILS = new Set([
+  'review-admin@regonteknoloji.com',
+  'review-bayi@regonteknoloji.com',
+])
 
 export default function AccountSettings() {
-  const { profile, deleteAccount } = useAuth()
+  const { user, profile, deleteAccount } = useAuth()
   const navigate = useNavigate()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
+
+  const email = (user?.email || profile?.email || '').toLowerCase()
+  const isDemoAccount = Boolean(profile?.is_demo) || DEMO_EMAILS.has(email)
 
   async function handleConfirmDelete() {
     setError('')
@@ -23,8 +30,13 @@ export default function AccountSettings() {
           notice: 'Hesabınız silindi.',
         },
       })
-    } catch {
-      setError('İşlem sırasında bir hata oluştu.')
+    } catch (err) {
+      const msg = String(err?.message || '')
+      setError(
+        msg.includes('Demo') || msg.includes('inceleme')
+          ? 'Demo / inceleme hesapları silinemez.'
+          : 'İşlem sırasında bir hata oluştu.'
+      )
       setDeleting(false)
     }
   }
@@ -42,6 +54,10 @@ export default function AccountSettings() {
         <div>
           <p className="text-xs font-medium text-gray-500">Ad Soyad</p>
           <p className="text-sm text-gray-900 mt-0.5">{profile?.full_name || '—'}</p>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-gray-500">E-posta</p>
+          <p className="text-sm text-gray-900 mt-0.5">{user?.email || profile?.email || '—'}</p>
         </div>
         <div>
           <p className="text-xs font-medium text-gray-500">Rol</p>
@@ -71,8 +87,14 @@ export default function AccountSettings() {
       <div className="bg-white border border-red-100 rounded-sm p-4 sm:p-5 space-y-3">
         <p className="text-xs font-medium text-gray-700">Tehlikeli bölge</p>
         <p className="text-xs text-gray-500">
-          Hesabınızı sildiğinizde oturumunuz kapanır ve hesabınıza ait veriler silinir.
+          Hesabınızı sildiğinizde oturumunuz kapanır; kişisel verileriniz silinir veya
+          anonimleştirilir. Bu işlem geri alınamaz.
         </p>
+        {isDemoAccount && (
+          <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-sm px-3 py-2">
+            Bu bir App Store inceleme / demo hesabıdır; güvenlik nedeniyle silinemez.
+          </p>
+        )}
         {error && (
           <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-sm px-3 py-2">
             {error}
@@ -80,11 +102,12 @@ export default function AccountSettings() {
         )}
         <button
           type="button"
+          disabled={isDemoAccount}
           onClick={() => {
             setError('')
             setConfirmOpen(true)
           }}
-          className="w-full sm:w-auto px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-sm hover:bg-red-700 transition-colors"
+          className="w-full sm:w-auto px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-sm hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           Hesabımı Sil
         </button>

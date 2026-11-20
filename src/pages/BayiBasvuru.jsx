@@ -121,7 +121,7 @@ export default function BayiBasvuru() {
   }
 
   return (
-    <div className="relative h-dvh min-h-screen bg-[#580F1C] flex items-center justify-center px-4 overflow-hidden">
+    <div className="relative h-dvh min-h-screen bg-[#580F1C] flex items-center justify-center px-4 overflow-hidden safe-area-pad-t safe-area-pad-b pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <img
         src={logoYuvarlak}
         alt=""

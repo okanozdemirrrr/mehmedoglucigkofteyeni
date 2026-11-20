@@ -53,16 +53,16 @@ export default function Sidebar({ isOpen, onClose }) {
           shrink-0 bg-white border-r border-gray-200
           transition-all duration-200 ease-out
           fixed md:static top-0 bottom-0 left-0 z-50
+          safe-area-pad-t pt-[env(safe-area-inset-top)]
           ${isOpen ? 'w-56 translate-x-0' : 'w-0 -translate-x-full md:translate-x-0 md:w-0 overflow-hidden border-r-0'}
         `}
-        style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
-        <nav className="h-full w-56 overflow-y-auto py-3 px-2">
-          <div className="pb-4 mb-4 border-b border-gray-200">
+        <nav className="h-full w-56 max-w-full overflow-y-auto overflow-x-hidden py-3 px-2 box-border">
+          <div className="w-full max-w-full overflow-hidden pb-4 mb-4 border-b border-gray-200 px-1">
             <img
               src={logoSidebar}
               alt="Mehmedoğlu Çiğköfte"
-              className="w-24 h-24 mx-auto object-contain"
+              className="block w-full max-w-[6rem] h-auto max-h-24 mx-auto object-contain"
             />
           </div>
           <ul className="space-y-0.5">

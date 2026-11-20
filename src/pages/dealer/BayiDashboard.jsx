@@ -6,6 +6,7 @@ import { useAuth } from '../../store/useAuth'
 import { formatCurrency, formatDate } from '../../utils/format'
 import { downloadCariEkstrePdf } from '../../utils/cariEkstrePdf'
 import OrderHistoryTable from '../../components/OrderHistoryTable'
+import ProductThumb from '../../components/ProductThumb'
 
 function ProductOrderRow({
   product,
@@ -25,8 +26,18 @@ function ProductOrderRow({
 
   return (
     <div className="px-5 py-4 border-b border-gray-50 last:border-b-0">
-      <p className="text-sm font-medium text-gray-900">{product.name}</p>
-      <p className="text-sm text-gray-600 mt-0.5">{formatCurrency(getProductPrice(product))}</p>
+      <div className="flex gap-3">
+        <ProductThumb
+          src={product.image_url}
+          alt={product.name}
+          className="w-16 h-16 shrink-0"
+          rounded
+        />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-gray-900">{product.name}</p>
+          <p className="text-sm text-gray-600 mt-0.5">{formatCurrency(getProductPrice(product))}</p>
+        </div>
+      </div>
 
       {requiredMods.map((mod) => (
         <div key={mod.key} className="mt-3">

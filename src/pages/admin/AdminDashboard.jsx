@@ -35,11 +35,46 @@ export default function AdminDashboard() {
   const [expandedOrders, setExpandedOrders] = useState({})
 
   useEffect(() => {
-    fetchDashboardData()
+    void fetchDashboardData()
+
+    if (!supabase) return undefined
+
+    let refreshTimer = null
+    const scheduleRefresh = () => {
+      if (refreshTimer) window.clearTimeout(refreshTimer)
+      // Realtime tetiklerinde ekranı "Yükleniyor..." ile silme
+      refreshTimer = window.setTimeout(() => {
+        void fetchDashboardData({ silent: true })
+      }, 350)
+    }
+
+    const channel = supabase
+      .channel('admin-dashboard-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        scheduleRefresh
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'return_requests' },
+        scheduleRefresh
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'transactions' },
+        scheduleRefresh
+      )
+      .subscribe()
+
+    return () => {
+      if (refreshTimer) window.clearTimeout(refreshTimer)
+      void supabase.removeChannel(channel)
+    }
   }, [])
 
-  async function fetchDashboardData() {
-    setLoading(true)
+  async function fetchDashboardData({ silent = false } = {}) {
+    if (!silent) setLoading(true)
 
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
@@ -104,7 +139,7 @@ export default function AdminDashboard() {
 
     setRiskDealers(risk)
     setPendingReturns(returnsRes.data || [])
-    setLoading(false)
+    if (!silent) setLoading(false)
   }
 
   async function updateOrderStatus(orderId, newStatus) {

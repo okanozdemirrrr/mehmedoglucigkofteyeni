@@ -46,11 +46,22 @@ export const useAuth = create((set, get) => ({
     }
 
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, role, dealer_id, status')
+        .select('id, full_name, role, dealer_id, status, is_demo, email')
         .eq('id', user.id)
         .single()
+
+      // is_demo kolonu henüz yoksa geriye dönük uyumluluk
+      if (error && /is_demo|column/i.test(error.message || '')) {
+        const fallback = await supabase
+          .from('profiles')
+          .select('id, full_name, role, dealer_id, status, email')
+          .eq('id', user.id)
+          .single()
+        data = fallback.data
+        error = fallback.error
+      }
 
       if (error) {
         console.error('Profil yüklenemedi:', error.message)
@@ -96,6 +107,16 @@ export const useAuth = create((set, get) => ({
 
   deleteAccount: async () => {
     if (!supabase) throw new Error('Sunucuya bağlanılamadı, lütfen tekrar deneyin.')
+
+    const profile = get().profile
+    const email = (get().user?.email || profile?.email || '').toLowerCase()
+    if (
+      profile?.is_demo ||
+      email === 'review-admin@regonteknoloji.com' ||
+      email === 'review-bayi@regonteknoloji.com'
+    ) {
+      throw new Error('Demo / inceleme hesapları silinemez.')
+    }
 
     const { error } = await supabase.rpc('delete_own_account')
     if (error) throw error

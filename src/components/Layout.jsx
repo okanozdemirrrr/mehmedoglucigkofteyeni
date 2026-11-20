@@ -44,7 +44,7 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col safe-area-pad-b pb-[env(safe-area-inset-bottom)]">
       <Navbar onToggleSidebar={toggleSidebar} />
 
       <div className="flex flex-1 min-h-0">

@@ -9,13 +9,12 @@ export default function Navbar({ onToggleSidebar }) {
 
   const handleSignOut = async () => {
     await signOut()
-    navigate('/login')
+    navigate('/urunler', { replace: true })
   }
 
   return (
     <header
-      className="sticky top-0 bg-[#580F1C] text-white border-b border-[#3d0a13] shrink-0 z-30"
-      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      className="sticky top-0 bg-[#580F1C] text-white border-b border-[#3d0a13] shrink-0 z-30 safe-area-pad-t pt-[env(safe-area-inset-top)]"
     >
       <div className="h-14 px-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">

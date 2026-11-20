@@ -16,8 +16,10 @@ import BayiDashboard from './pages/dealer/BayiDashboard'
 import ReturnRequest from './pages/dealer/ReturnRequest'
 import AccountSettings from './pages/AccountSettings'
 import Gizlilik from './pages/Gizlilik'
+import ProductCatalog from './pages/ProductCatalog'
+import ProductDetail from './pages/ProductDetail'
 
-function RootRedirect() {
+function HomePage() {
   const { user, profile, loading } = useAuth()
 
   if (loading) {
@@ -28,14 +30,31 @@ function RootRedirect() {
     )
   }
 
-  if (!user) return <Navigate to="/login" replace />
-
-  if (profile?.status && profile.status !== 'APPROVED') {
-    return <Navigate to="/login" replace />
+  if (user && profile?.status === 'APPROVED') {
+    if (profile.role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />
+    if (profile.role === 'DEALER') return <Navigate to="/bayi/dashboard" replace />
   }
 
-  if (profile?.role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />
-  return <Navigate to="/bayi/dashboard" replace />
+  return <ProductCatalog />
+}
+
+function FallbackRoute() {
+  const { user, profile, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-sm text-gray-500">Yükleniyor...</p>
+      </div>
+    )
+  }
+
+  if (user && profile?.status === 'APPROVED') {
+    if (profile.role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />
+    return <Navigate to="/bayi/dashboard" replace />
+  }
+
+  return <Navigate to="/urunler" replace />
 }
 
 export default function App() {
@@ -52,6 +71,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/urunler" element={<ProductCatalog />} />
+        <Route path="/urunler/:productId" element={<ProductDetail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/bayi-basvuru" element={<BayiBasvuru />} />
         <Route path="/gizlilik" element={<Gizlilik />} />
@@ -75,8 +97,7 @@ export default function App() {
           </Route>
         </Route>
 
-        <Route path="/" element={<RootRedirect />} />
-        <Route path="*" element={<RootRedirect />} />
+        <Route path="*" element={<FallbackRoute />} />
       </Routes>
     </BrowserRouter>
   )

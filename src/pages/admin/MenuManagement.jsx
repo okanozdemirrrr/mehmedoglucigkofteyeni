@@ -1,12 +1,24 @@
 import { useEffect, useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Pencil, X } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import { formatCurrency } from '../../utils/format'
 import { StackTableWrap, stackTableClass } from '../../components/StackTable'
+import ProductThumb from '../../components/ProductThumb'
+import {
+  uploadProductImage,
+  removeProductImageFile,
+} from '../../lib/productImages'
 
 const SPICINESS_MODIFIER = [
   { key: 'spiciness', label: 'Acılık', required: true, options: ['Acılı', 'Acısız'] },
 ]
+
+const emptyProductForm = {
+  name: '',
+  base_price: '',
+  is_active: true,
+  requires_spiciness: false,
+}
 
 function isForeignKeyError(error) {
   if (!error) return false
@@ -20,6 +32,54 @@ function isForeignKeyError(error) {
   )
 }
 
+function productHasSpiciness(product) {
+  const mods = product?.modifiers_jsonb
+  if (!Array.isArray(mods)) return false
+  return mods.some((m) => m.key === 'spiciness' || m.label === 'Acılık')
+}
+
+function ImagePicker({ previewUrl, onFile, onClear, disabled, inputId }) {
+  return (
+    <div className="space-y-2">
+      <label className="block text-xs font-medium text-gray-700">Ürün Görseli (isteğe bağlı)</label>
+      <div className="flex flex-wrap items-start gap-3">
+        <ProductThumb
+          src={previewUrl}
+          alt="Önizleme"
+          className="w-24 h-24 shrink-0"
+          rounded
+        />
+        <div className="flex flex-col gap-2 min-w-0">
+          <input
+            id={inputId}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/*"
+            capture="environment"
+            disabled={disabled}
+            onChange={(e) => {
+              const file = e.target.files?.[0] || null
+              onFile(file)
+              e.target.value = ''
+            }}
+            className="block w-full max-w-xs text-xs text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-sm file:border-0 file:text-xs file:font-medium file:bg-[#580F1C]/10 file:text-[#580F1C] hover:file:bg-[#580F1C]/15"
+          />
+          <p className="text-[10px] text-gray-400">JPG / PNG / WEBP · en fazla 5 MB</p>
+          {previewUrl && (
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={onClear}
+              className="self-start text-xs text-red-600 hover:text-red-700 disabled:opacity-50"
+            >
+              Görseli kaldır
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function MenuManagement() {
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
@@ -30,14 +90,19 @@ export default function MenuManagement() {
   const [categorySubmitting, setCategorySubmitting] = useState(false)
   const [categoryError, setCategoryError] = useState('')
 
-  const [productForm, setProductForm] = useState({
-    name: '',
-    base_price: '',
-    is_active: true,
-    requires_spiciness: false,
-  })
+  const [productForm, setProductForm] = useState(emptyProductForm)
+  const [createImageFile, setCreateImageFile] = useState(null)
+  const [createPreview, setCreatePreview] = useState(null)
   const [productSubmitting, setProductSubmitting] = useState(false)
   const [productError, setProductError] = useState('')
+
+  const [editing, setEditing] = useState(null)
+  const [editForm, setEditForm] = useState(emptyProductForm)
+  const [editImageFile, setEditImageFile] = useState(null)
+  const [editPreview, setEditPreview] = useState(null)
+  const [editRemoveImage, setEditRemoveImage] = useState(false)
+  const [editSubmitting, setEditSubmitting] = useState(false)
+  const [editError, setEditError] = useState('')
 
   useEffect(() => {
     fetchCategories()
@@ -50,6 +115,13 @@ export default function MenuManagement() {
       setProducts([])
     }
   }, [selectedCategoryId])
+
+  useEffect(() => {
+    return () => {
+      if (createPreview?.startsWith('blob:')) URL.revokeObjectURL(createPreview)
+      if (editPreview?.startsWith('blob:')) URL.revokeObjectURL(editPreview)
+    }
+  }, [createPreview, editPreview])
 
   async function fetchCategories() {
     setLoading(true)
@@ -71,11 +143,61 @@ export default function MenuManagement() {
   async function fetchProducts(categoryId) {
     const { data } = await supabase
       .from('products')
-      .select('id, name, base_price, is_active, category_id')
+      .select('id, name, base_price, is_active, category_id, image_url, modifiers_jsonb')
       .eq('category_id', categoryId)
       .order('name')
 
     setProducts(data || [])
+  }
+
+  function setCreateFile(file) {
+    if (createPreview?.startsWith('blob:')) URL.revokeObjectURL(createPreview)
+    setCreateImageFile(file)
+    setCreatePreview(file ? URL.createObjectURL(file) : null)
+  }
+
+  function clearCreateImage() {
+    setCreateFile(null)
+  }
+
+  function openEdit(product) {
+    if (editPreview?.startsWith('blob:')) URL.revokeObjectURL(editPreview)
+    setEditing(product)
+    setEditForm({
+      name: product.name || '',
+      base_price: String(product.base_price ?? ''),
+      is_active: Boolean(product.is_active),
+      requires_spiciness: productHasSpiciness(product),
+    })
+    setEditImageFile(null)
+    setEditPreview(product.image_url || null)
+    setEditRemoveImage(false)
+    setEditError('')
+  }
+
+  function closeEdit() {
+    if (editPreview?.startsWith('blob:')) URL.revokeObjectURL(editPreview)
+    setEditing(null)
+    setEditImageFile(null)
+    setEditPreview(null)
+    setEditRemoveImage(false)
+    setEditError('')
+  }
+
+  function setEditFile(file) {
+    if (editPreview?.startsWith('blob:') && editImageFile) {
+      URL.revokeObjectURL(editPreview)
+    }
+    setEditImageFile(file)
+    setEditRemoveImage(false)
+    setEditPreview(file ? URL.createObjectURL(file) : editing?.image_url || null)
+  }
+
+  function clearEditImage() {
+    if (editPreview?.startsWith('blob:')) URL.revokeObjectURL(editPreview)
+    setEditImageFile(null)
+    setEditPreview(null)
+    setEditRemoveImage(true)
   }
 
   async function handleCreateCategory(e) {
@@ -153,22 +275,100 @@ export default function MenuManagement() {
       return
     }
 
-    const { error } = await supabase.from('products').insert({
-      name: productForm.name.trim(),
-      base_price: price,
-      is_active: productForm.is_active,
-      category_id: selectedCategoryId,
-      modifiers_jsonb: productForm.requires_spiciness ? SPICINESS_MODIFIER : [],
-    })
+    const { data: created, error } = await supabase
+      .from('products')
+      .insert({
+        name: productForm.name.trim(),
+        base_price: price,
+        is_active: productForm.is_active,
+        category_id: selectedCategoryId,
+        modifiers_jsonb: productForm.requires_spiciness ? SPICINESS_MODIFIER : [],
+      })
+      .select('id')
+      .single()
 
     if (error) {
       setProductError(error.message)
-    } else {
-      setProductForm({ name: '', base_price: '', is_active: true, requires_spiciness: false })
-      fetchProducts(selectedCategoryId)
+      setProductSubmitting(false)
+      return
     }
 
+    if (createImageFile && created?.id) {
+      try {
+        const imageUrl = await uploadProductImage(created.id, createImageFile)
+        const { error: imgErr } = await supabase
+          .from('products')
+          .update({ image_url: imageUrl })
+          .eq('id', created.id)
+        if (imgErr) throw imgErr
+      } catch (err) {
+        setProductError(
+          err?.message ||
+            'Ürün kaydedildi ancak görsel yüklenemedi. Düzenle ile tekrar deneyebilirsiniz.'
+        )
+        setProductSubmitting(false)
+        setProductForm(emptyProductForm)
+        clearCreateImage()
+        fetchProducts(selectedCategoryId)
+        return
+      }
+    }
+
+    setProductForm(emptyProductForm)
+    clearCreateImage()
+    fetchProducts(selectedCategoryId)
     setProductSubmitting(false)
+  }
+
+  async function handleSaveEdit(e) {
+    e.preventDefault()
+    if (!editing) return
+
+    setEditError('')
+    setEditSubmitting(true)
+
+    const price = parseFloat(editForm.base_price)
+    if (!price || price <= 0) {
+      setEditError('Geçerli bir fiyat girin.')
+      setEditSubmitting(false)
+      return
+    }
+
+    let nextImageUrl = editing.image_url || null
+    const previousUrl = editing.image_url || null
+
+    try {
+      if (editRemoveImage && !editImageFile) {
+        await removeProductImageFile(previousUrl)
+        nextImageUrl = null
+      } else if (editImageFile) {
+        nextImageUrl = await uploadProductImage(editing.id, editImageFile)
+        if (previousUrl && previousUrl !== nextImageUrl) {
+          await removeProductImageFile(previousUrl)
+        }
+      }
+
+      const { error } = await supabase
+        .from('products')
+        .update({
+          name: editForm.name.trim(),
+          base_price: price,
+          is_active: editForm.is_active,
+          category_id: selectedCategoryId,
+          modifiers_jsonb: editForm.requires_spiciness ? SPICINESS_MODIFIER : [],
+          image_url: nextImageUrl,
+        })
+        .eq('id', editing.id)
+
+      if (error) throw error
+
+      closeEdit()
+      fetchProducts(selectedCategoryId)
+    } catch (err) {
+      setEditError(err?.message || 'İşlem sırasında bir hata oluştu.')
+    } finally {
+      setEditSubmitting(false)
+    }
   }
 
   async function handleDeleteProduct(product) {
@@ -206,6 +406,8 @@ export default function MenuManagement() {
       return
     }
 
+    await removeProductImageFile(product.image_url)
+    if (editing?.id === product.id) closeEdit()
     fetchProducts(selectedCategoryId)
   }
 
@@ -220,7 +422,6 @@ export default function MenuManagement() {
       <h1 className="text-lg font-semibold text-gray-900 mb-6">Menü Yönetimi</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sol: Kategoriler */}
         <div className="bg-white border border-gray-200 rounded-sm">
           <div className="px-5 py-4 border-b border-gray-200">
             <h2 className="text-sm font-semibold text-gray-900">Kategoriler</h2>
@@ -276,9 +477,7 @@ export default function MenuManagement() {
               placeholder="Örn: Çiğköfte"
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-sm focus:outline-none focus:border-[#580F1C]"
             />
-            {categoryError && (
-              <p className="text-xs text-red-600">{categoryError}</p>
-            )}
+            {categoryError && <p className="text-xs text-red-600">{categoryError}</p>}
             <button
               type="submit"
               disabled={categorySubmitting}
@@ -289,7 +488,6 @@ export default function MenuManagement() {
           </form>
         </div>
 
-        {/* Sağ: Ürünler */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white border border-gray-200 rounded-sm">
             <div className="px-5 py-4 border-b border-gray-200">
@@ -311,15 +509,34 @@ export default function MenuManagement() {
                 <table className={stackTableClass()}>
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50">
-                      <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Ürün</th>
-                      <th className="text-right px-5 py-2.5 text-xs font-medium text-gray-500">Fiyat</th>
-                      <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Durum</th>
-                      <th className="text-right px-5 py-2.5 text-xs font-medium text-gray-500">İşlemler</th>
+                      <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">
+                        Görsel
+                      </th>
+                      <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">
+                        Ürün
+                      </th>
+                      <th className="text-right px-5 py-2.5 text-xs font-medium text-gray-500">
+                        Fiyat
+                      </th>
+                      <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">
+                        Durum
+                      </th>
+                      <th className="text-right px-5 py-2.5 text-xs font-medium text-gray-500">
+                        İşlemler
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {products.map((p) => (
                       <tr key={p.id} className="border-b border-gray-50">
+                        <td data-label="Görsel" className="px-5 py-3">
+                          <ProductThumb
+                            src={p.image_url}
+                            alt={p.name}
+                            className="w-12 h-12"
+                            rounded
+                          />
+                        </td>
                         <td data-label="Ürün" className="px-5 py-3 text-gray-900 font-medium">
                           {p.name}
                         </td>
@@ -338,14 +555,24 @@ export default function MenuManagement() {
                           </span>
                         </td>
                         <td data-label="" className="stack-actions px-5 py-3 text-right">
-                          <button
-                            type="button"
-                            title="Ürünü sil"
-                            onClick={() => handleDeleteProduct(p)}
-                            className="inline-flex p-1.5 text-gray-300 hover:text-red-600 transition-colors"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div className="inline-flex items-center gap-1">
+                            <button
+                              type="button"
+                              title="Düzenle"
+                              onClick={() => openEdit(p)}
+                              className="inline-flex p-1.5 text-gray-400 hover:text-[#580F1C] transition-colors"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              title="Ürünü sil"
+                              onClick={() => handleDeleteProduct(p)}
+                              className="inline-flex p-1.5 text-gray-300 hover:text-red-600 transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -355,10 +582,122 @@ export default function MenuManagement() {
             )}
           </div>
 
+          {editing && (
+            <div className="bg-white border border-gray-200 rounded-sm p-5">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h3 className="text-sm font-semibold text-gray-900">Ürünü Düzenle</h3>
+                <button
+                  type="button"
+                  onClick={closeEdit}
+                  className="p-1 text-gray-400 hover:text-gray-700"
+                  aria-label="Kapat"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <form onSubmit={handleSaveEdit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Ürün Adı *</label>
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-sm focus:outline-none focus:border-[#580F1C]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Baz Fiyat (₺) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={editForm.base_price}
+                    onChange={(e) => setEditForm((f) => ({ ...f, base_price: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-sm focus:outline-none focus:border-[#580F1C]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Kategori</label>
+                  <select
+                    value={selectedCategoryId}
+                    onChange={(e) => setSelectedCategoryId(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-sm focus:outline-none focus:border-[#580F1C] bg-white"
+                  >
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="sm:col-span-2 flex flex-wrap gap-6">
+                  <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editForm.is_active}
+                      onChange={(e) => setEditForm((f) => ({ ...f, is_active: e.target.checked }))}
+                      className="rounded-sm border-gray-300"
+                    />
+                    Aktif ürün
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editForm.requires_spiciness}
+                      onChange={(e) =>
+                        setEditForm((f) => ({ ...f, requires_spiciness: e.target.checked }))
+                      }
+                      className="rounded-sm border-gray-300"
+                    />
+                    Acılık seçeneği zorunlu (Acılı / Acısız)
+                  </label>
+                </div>
+                <div className="sm:col-span-2">
+                  <ImagePicker
+                    inputId="edit-product-image"
+                    previewUrl={editPreview}
+                    onFile={setEditFile}
+                    onClear={clearEditImage}
+                    disabled={editSubmitting}
+                  />
+                </div>
+                {editError && (
+                  <p className="sm:col-span-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-sm px-3 py-2">
+                    {editError}
+                  </p>
+                )}
+                <div className="sm:col-span-2 flex flex-wrap gap-2">
+                  <button
+                    type="submit"
+                    disabled={editSubmitting}
+                    className="px-4 py-2 text-sm font-medium text-white bg-[#580F1C] rounded-sm hover:bg-[#3d0a13] disabled:opacity-50"
+                  >
+                    {editSubmitting ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={editSubmitting}
+                    onClick={closeEdit}
+                    className="px-4 py-2 text-sm border border-gray-300 rounded-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Vazgeç
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
           {selectedCategoryId && (
             <div className="bg-white border border-gray-200 rounded-sm p-5">
               <h3 className="text-sm font-semibold text-gray-900 mb-4">Yeni Ürün Ekle</h3>
-              <form onSubmit={handleCreateProduct} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <form
+                onSubmit={handleCreateProduct}
+                className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+              >
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-medium text-gray-700 mb-1">Ürün Adı *</label>
                   <input
@@ -371,7 +710,9 @@ export default function MenuManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Baz Fiyat (₺) *</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Baz Fiyat (₺) *
+                  </label>
                   <input
                     type="number"
                     step="0.01"
@@ -391,7 +732,9 @@ export default function MenuManagement() {
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-sm focus:outline-none focus:border-[#580F1C] bg-white"
                   >
                     {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -401,7 +744,9 @@ export default function MenuManagement() {
                     <input
                       type="checkbox"
                       checked={productForm.is_active}
-                      onChange={(e) => setProductForm((f) => ({ ...f, is_active: e.target.checked }))}
+                      onChange={(e) =>
+                        setProductForm((f) => ({ ...f, is_active: e.target.checked }))
+                      }
                       className="rounded-sm border-gray-300"
                     />
                     Aktif ürün
@@ -417,6 +762,16 @@ export default function MenuManagement() {
                     />
                     Acılık seçeneği zorunlu (Acılı / Acısız)
                   </label>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <ImagePicker
+                    inputId="create-product-image"
+                    previewUrl={createPreview}
+                    onFile={setCreateFile}
+                    onClear={clearCreateImage}
+                    disabled={productSubmitting}
+                  />
                 </div>
 
                 {productError && (

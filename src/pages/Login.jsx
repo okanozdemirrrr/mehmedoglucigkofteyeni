@@ -53,14 +53,21 @@ export default function Login() {
   const location = useLocation()
 
   useEffect(() => {
+    if (location.state?.preferredRole === 'ADMIN' || location.state?.preferredRole === 'DEALER') {
+      setLoginRole(location.state.preferredRole)
+    }
     if (location.state?.notice) {
       setNotice(location.state.notice)
-      navigate(location.pathname, { replace: true, state: {} })
     }
     if (location.state?.pendingBlocked) {
       setError('Hesabınız henüz onaylanmamıştır')
       void signOut()
-      navigate(location.pathname, { replace: true, state: {} })
+    }
+    if (location.state?.notice || location.state?.pendingBlocked || location.state?.preferredRole) {
+      navigate(location.pathname, {
+        replace: true,
+        state: location.state?.from ? { from: location.state.from } : {},
+      })
     }
   }, [location, navigate, signOut])
 
@@ -71,10 +78,21 @@ export default function Login() {
         setError('Hesabınız henüz onaylanmamıştır')
         return
       }
+      const from = location.state?.from
+      const fromPath =
+        typeof from === 'string'
+          ? from
+          : from?.pathname
+            ? `${from.pathname}${from.search || ''}`
+            : null
+      if (fromPath && fromPath !== '/login') {
+        navigate(fromPath, { replace: true })
+        return
+      }
       const redirect = profile.role === 'ADMIN' ? '/admin/dashboard' : '/bayi/dashboard'
       navigate(redirect, { replace: true })
     }
-  }, [profile, loading, navigate, signOut])
+  }, [profile, loading, navigate, signOut, location.state])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -108,7 +126,18 @@ export default function Login() {
         return
       }
 
-      navigate(currentProfile.role === 'ADMIN' ? '/admin/dashboard' : '/bayi/dashboard')
+      const from = location.state?.from
+      const fromPath =
+        typeof from === 'string'
+          ? from
+          : from?.pathname
+            ? `${from.pathname}${from.search || ''}`
+            : null
+      if (fromPath && fromPath !== '/login') {
+        navigate(fromPath, { replace: true })
+      } else {
+        navigate(currentProfile.role === 'ADMIN' ? '/admin/dashboard' : '/bayi/dashboard')
+      }
     } catch (err) {
       setError(mapAuthError(err))
     } finally {
@@ -133,7 +162,7 @@ export default function Login() {
   }
 
   return (
-    <div className="relative h-dvh min-h-screen bg-[#580F1C] flex items-center justify-center px-4 overflow-hidden">
+    <div className="relative h-dvh min-h-screen bg-[#580F1C] flex items-center justify-center px-4 overflow-hidden safe-area-pad-t safe-area-pad-b pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <img
         src={logoYuvarlak}
         alt=""
@@ -252,14 +281,25 @@ export default function Login() {
             </p>
           )}
 
-          <p className="text-center mt-4">
-            <Link
-              to="/gizlilik"
-              className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2 transition-colors"
-            >
-              Gizlilik Politikası
-            </Link>
-          </p>
+          <div className="mt-4 space-y-2 text-center">
+            <p>
+              <Link
+                to="/gizlilik"
+                className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2 transition-colors"
+              >
+                Gizlilik Politikası
+              </Link>
+            </p>
+            <p className="text-[11px] text-gray-400">
+              Destek:{' '}
+              <a
+                href="mailto:destek@regonteknoloji.com"
+                className="underline underline-offset-2 hover:text-gray-600"
+              >
+                destek@regonteknoloji.com
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </div>

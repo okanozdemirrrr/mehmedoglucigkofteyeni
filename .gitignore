@@ -13,6 +13,7 @@ dist-ssr
 *.local
 .env
 .env.local
+APP_REVIEW_NOTES.md
 
 # Editor directories and files
 .vscode/*
