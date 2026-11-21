@@ -1,39 +1,47 @@
 import { Capacitor } from '@capacitor/core'
 import { supabase } from './supabaseClient'
 
-/** Cihaz push token'ını Supabase'e kaydet */
-export async function registerPushToken(existingUserId) {
-  if (!supabase) return null
+let pushInFlight = null
 
-  // getUser() ağ turu yapar; oturum zaten varsa session'dan al
-  let userId = existingUserId || null
-  if (!userId) {
-    const { data } = await supabase.auth.getSession()
-    userId = data?.session?.user?.id || null
-  }
-  if (!userId) return null
+/**
+ * Push kaydı UI'yı bloklamasın: kısa gecikmeyle, oturum başına bir kez.
+ * iOS izin diyaloğu WebView'i dondurur → açılış/girişten sonra ertelenir.
+ */
+export function registerPushToken(existingUserId) {
+  if (pushInFlight) return pushInFlight
 
-  let token = null
-  let platform = 'web'
+  pushInFlight = (async () => {
+    await new Promise((r) => window.setTimeout(r, 4500))
 
-  if (Capacitor.isNativePlatform()) {
-    platform = Capacitor.getPlatform()
-    token = await registerNativePush()
-  }
+    if (!supabase) return null
+    if (!Capacitor.isNativePlatform()) return null
 
-  if (!token) return null
+    let userId = existingUserId || null
+    if (!userId) {
+      const { data } = await supabase.auth.getSession()
+      userId = data?.session?.user?.id || null
+    }
+    if (!userId) return null
 
-  const { error } = await supabase.rpc('upsert_push_token', {
-    p_token: token,
-    p_platform: platform,
+    const token = await registerNativePush()
+    if (!token) return null
+
+    const { error } = await supabase.rpc('upsert_push_token', {
+      p_token: token,
+      p_platform: Capacitor.getPlatform(),
+    })
+
+    if (error) {
+      console.warn('Push token kaydı başarısız:', error.message)
+      return null
+    }
+    return token
+  })().catch((err) => {
+    console.warn('Push kayıt atlandı:', err)
+    return null
   })
 
-  if (error) {
-    console.warn('Push token kaydı başarısız:', error.message)
-    return null
-  }
-
-  return token
+  return pushInFlight
 }
 
 async function registerNativePush() {
@@ -41,25 +49,26 @@ async function registerNativePush() {
     const { PushNotifications } = await import('@capacitor/push-notifications')
 
     let perm = await PushNotifications.checkPermissions()
+    if (perm.receive === 'denied') return null
+
     if (perm.receive === 'prompt' || perm.receive === 'prompt-with-rationale') {
       perm = await PushNotifications.requestPermissions()
     }
     if (perm.receive !== 'granted') return null
 
-    await PushNotifications.register()
+    return await new Promise((resolve) => {
+      let settled = false
+      const finish = (value) => {
+        if (settled) return
+        settled = true
+        window.clearTimeout(timeout)
+        resolve(value)
+      }
+      const timeout = window.setTimeout(() => finish(null), 4000)
 
-    return new Promise((resolve) => {
-      const timeout = setTimeout(() => resolve(null), 12000)
-
-      PushNotifications.addListener('registration', (t) => {
-        clearTimeout(timeout)
-        resolve(t.value)
-      })
-
-      PushNotifications.addListener('registrationError', () => {
-        clearTimeout(timeout)
-        resolve(null)
-      })
+      void PushNotifications.addListener('registration', (t) => finish(t?.value || null))
+      void PushNotifications.addListener('registrationError', () => finish(null))
+      void PushNotifications.register().catch(() => finish(null))
     })
   } catch (err) {
     console.warn('Native push kayıt hatası:', err)
@@ -73,7 +82,7 @@ export async function showLocalNotification(title, body, extra = {}) {
 
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications')
-    const perm = await LocalNotifications.requestPermissions()
+    const perm = await LocalNotifications.checkPermissions()
     if (perm.display !== 'granted') return
 
     await LocalNotifications.schedule({

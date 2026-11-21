@@ -29,12 +29,22 @@ export const useAuth = create((set, get) => ({
       }
     }, AUTH_TIMEOUT_MS)
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    // Listener'dan önce session oku — Preferences hydrate sonrası hızlı path
+    void supabase.auth.getSession().then(({ data }) => {
+      if (data?.session?.user) {
+        void get().fetchProfile(data.session.user)
+      }
+    })
+
+    supabase.auth.onAuthStateChange((event, session) => {
       // Callback must stay sync. Awaiting supabase calls here deadlocks the client.
       window.setTimeout(() => {
         if (session?.user) {
           void get().fetchProfile(session.user)
-        } else {
+          return
+        }
+        // Oturum yok: sadece kesin olaylarda temizle (TOKEN_REFRESHED null ile yarışmasın)
+        if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
           inflightProfile = null
           set({ user: null, profile: null, loading: false })
         }
@@ -102,14 +112,8 @@ export const useAuth = create((set, get) => ({
 
     if (data.user) {
       // onAuthStateChange da tetiklenir; inflight dedupe çift profil isteğini birleştirir
+      // Push yalnız Layout'ta (ertelenmiş) — giriş anında izin diyaloğu iOS'u dondurmasın
       await get().fetchProfile(data.user)
-      // Push Layout'ta da kayıt olur; burada user id ile ekstra getUser turu yok
-      try {
-        const { registerPushToken } = await import('../lib/notifications')
-        void registerPushToken(data.user.id)
-      } catch {
-        /* push opsiyonel */
-      }
     }
 
     return data

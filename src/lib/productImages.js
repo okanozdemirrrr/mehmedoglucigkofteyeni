@@ -12,25 +12,13 @@ export function withImageCacheBust(url) {
 }
 
 /**
- * Liste/thumbnail için Supabase image transform (yoksa orijinal URL).
- * /object/public/ → /render/image/public/ + width
+ * Liste thumbnail URL.
+ * Not: /render/image transform bazı projelerde 4xx verip her görselde
+ * timeout+fallback ile listeyi aşırı yavaşlatıyordu → orijinal public URL.
+ * Yükleme zaten ~1000px JPEG üretiyor.
  */
-export function toProductThumbUrl(url, width = 320) {
-  if (!url) return null
-  try {
-    const u = new URL(url)
-    const marker = `/object/public/${PRODUCT_IMAGES_BUCKET}/`
-    const idx = u.pathname.indexOf(marker)
-    if (idx === -1) return url
-    const pathAfter = u.pathname.slice(idx + marker.length)
-    u.pathname = `/storage/v1/render/image/public/${PRODUCT_IMAGES_BUCKET}/${pathAfter}`
-    u.searchParams.set('width', String(width))
-    u.searchParams.set('resize', 'contain')
-    u.searchParams.set('quality', '75')
-    return u.toString()
-  } catch {
-    return url
-  }
+export function toProductThumbUrl(url, _width = 320) {
+  return withImageCacheBust(url)
 }
 
 export function extractStoragePathFromPublicUrl(url) {
