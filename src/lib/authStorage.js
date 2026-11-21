@@ -5,42 +5,60 @@ import { Capacitor } from '@capacitor/core'
  * - Native (iOS/Android): @capacitor/preferences (UserDefaults / SharedPreferences)
  * - Web: localStorage
  *
- * iOS WKWebView localStorage uygulama kapanınca / düşük depoda silinebilir.
+ * Bellek önbelleği: aynı oturum anahtarını açılışta tekrar tekrar Preferences'tan okumayı önler.
  */
 let PreferencesApi = null
+let preferencesPromise = null
+const memoryCache = new Map()
 
 async function getPreferences() {
   if (PreferencesApi) return PreferencesApi
   if (!Capacitor.isNativePlatform()) return null
-  const mod = await import('@capacitor/preferences')
-  PreferencesApi = mod.Preferences
-  return PreferencesApi
+  if (!preferencesPromise) {
+    preferencesPromise = import('@capacitor/preferences').then((mod) => {
+      PreferencesApi = mod.Preferences
+      return PreferencesApi
+    })
+  }
+  return preferencesPromise
 }
 
 export const authStorage = {
   async getItem(key) {
+    if (memoryCache.has(key)) {
+      return memoryCache.get(key)
+    }
     try {
       const Prefs = await getPreferences()
       if (Prefs) {
         const { value } = await Prefs.get({ key })
-        if (value != null) return value
+        if (value != null) {
+          memoryCache.set(key, value)
+          return value
+        }
         // Tek seferlik: eski localStorage oturumunu native depoya taşı
         try {
           const legacy = window.localStorage?.getItem(key)
           if (legacy) {
             await Prefs.set({ key, value: legacy })
+            memoryCache.set(key, legacy)
             return legacy
           }
         } catch {
           /* ignore */
         }
+        memoryCache.set(key, null)
         return null
       }
-      return window.localStorage.getItem(key)
+      const v = window.localStorage.getItem(key)
+      memoryCache.set(key, v)
+      return v
     } catch (err) {
       console.warn('[authStorage] getItem', err)
       try {
-        return window.localStorage.getItem(key)
+        const v = window.localStorage.getItem(key)
+        memoryCache.set(key, v)
+        return v
       } catch {
         return null
       }
@@ -48,6 +66,7 @@ export const authStorage = {
   },
 
   async setItem(key, value) {
+    memoryCache.set(key, value)
     try {
       const Prefs = await getPreferences()
       if (Prefs) {
@@ -66,6 +85,7 @@ export const authStorage = {
   },
 
   async removeItem(key) {
+    memoryCache.delete(key)
     try {
       const Prefs = await getPreferences()
       if (Prefs) {

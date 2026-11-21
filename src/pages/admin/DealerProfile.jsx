@@ -53,12 +53,17 @@ export default function DealerProfile() {
     setLoading(true)
 
     const [dealerRes, txRes, profileRes, ordersRes] = await Promise.all([
-      supabase.from('dealers').select('*').eq('id', dealerId).single(),
+      supabase
+        .from('dealers')
+        .select('id, name, tax_no, phone, address, created_at')
+        .eq('id', dealerId)
+        .single(),
       supabase
         .from('transactions')
-        .select('*')
+        .select('id, dealer_id, transaction_type, amount, description, created_at, order_id')
         .eq('dealer_id', dealerId)
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(100),
       supabase
         .from('profiles')
         .select('id, full_name, age, city, district, tax_no, phone, email, status, created_at')
@@ -82,7 +87,8 @@ export default function DealerProfile() {
         `
         )
         .eq('dealer_id', dealerId)
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(50),
     ])
 
     setDealer(dealerRes.data)
@@ -194,7 +200,9 @@ export default function DealerProfile() {
         <div className="flex flex-wrap gap-2 shrink-0">
           <button
             type="button"
-            onClick={() => downloadCariEkstrePdf(dealer, transactions)}
+            onClick={() => {
+              void downloadCariEkstrePdf(dealer, transactions)
+            }}
             className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-[#580F1C] rounded-sm hover:bg-[#3d0a13] transition-colors"
           >
             <FileDown size={14} />

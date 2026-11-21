@@ -11,6 +11,28 @@ export function withImageCacheBust(url) {
   return url
 }
 
+/**
+ * Liste/thumbnail için Supabase image transform (yoksa orijinal URL).
+ * /object/public/ → /render/image/public/ + width
+ */
+export function toProductThumbUrl(url, width = 320) {
+  if (!url) return null
+  try {
+    const u = new URL(url)
+    const marker = `/object/public/${PRODUCT_IMAGES_BUCKET}/`
+    const idx = u.pathname.indexOf(marker)
+    if (idx === -1) return url
+    const pathAfter = u.pathname.slice(idx + marker.length)
+    u.pathname = `/storage/v1/render/image/public/${PRODUCT_IMAGES_BUCKET}/${pathAfter}`
+    u.searchParams.set('width', String(width))
+    u.searchParams.set('resize', 'contain')
+    u.searchParams.set('quality', '75')
+    return u.toString()
+  } catch {
+    return url
+  }
+}
+
 export function extractStoragePathFromPublicUrl(url) {
   if (!url) return null
   try {
@@ -99,7 +121,7 @@ export async function uploadProductImage(productId, file) {
     .upload(path, prepared, {
       contentType: 'image/jpeg',
       upsert: false,
-      cacheControl: '3600',
+      cacheControl: '31536000',
     })
 
   if (error) {

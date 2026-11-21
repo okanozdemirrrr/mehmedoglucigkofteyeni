@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchPublicProducts } from '../lib/publicCatalog'
 import ProductThumb from '../components/ProductThumb'
-import logoYuvarlak from '../assets/logo-yuvarlak.png'
+import logoYuvarlak from '../assets/logo-yuvarlak.webp'
 import { SUPPORT_EMAIL } from '../lib/appConfig'
 
 export default function ProductCatalog() {

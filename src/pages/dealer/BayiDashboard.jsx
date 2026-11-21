@@ -139,13 +139,16 @@ export default function BayiDashboard() {
       await Promise.all([
       supabase
         .from('transactions')
-        .select('*')
+        .select('id, dealer_id, transaction_type, amount, description, created_at, order_id')
         .eq('dealer_id', dealerId)
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(80),
       supabase.from('dealers').select('id, name, tax_no, phone').eq('id', dealerId).single(),
       supabase
         .from('products')
-        .select('*, categories(id, name, sort_order)')
+        .select(
+          'id, name, product_code, base_price, is_active, category_id, image_url, modifiers_jsonb'
+        )
         .eq('is_active', true)
         .order('name'),
       supabase.from('categories').select('id, name, sort_order').order('sort_order'),
@@ -171,8 +174,19 @@ export default function BayiDashboard() {
         `
         )
         .eq('dealer_id', dealerId)
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(40),
     ])
+
+    let productsData = productsRes.data
+    if (productsRes.error && /product_code|column/i.test(productsRes.error.message || '')) {
+      const fallback = await supabase
+        .from('products')
+        .select('id, name, base_price, is_active, category_id, image_url, modifiers_jsonb')
+        .eq('is_active', true)
+        .order('name')
+      productsData = fallback.data
+    }
 
     const txs = txRes.data || []
     setTransactions(txs)
@@ -191,7 +205,7 @@ export default function BayiDashboard() {
     )
     setLastReceipt(receipt || null)
 
-    setProducts(productsRes.data || [])
+    setProducts(productsData || [])
     setCategories(categoriesRes.data || [])
 
     const priceMap = {}
@@ -344,7 +358,9 @@ export default function BayiDashboard() {
           </Link>
           <button
             type="button"
-            onClick={() => downloadCariEkstrePdf(dealer, transactions)}
+            onClick={() => {
+              void downloadCariEkstrePdf(dealer, transactions)
+            }}
             className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-[#580F1C] rounded-sm hover:bg-[#3d0a13] transition-colors"
           >
             <FileDown size={14} />

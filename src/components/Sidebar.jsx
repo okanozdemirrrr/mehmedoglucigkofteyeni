@@ -8,7 +8,7 @@ import {
   Settings,
 } from 'lucide-react'
 import { useAuth } from '../store/useAuth'
-import logoSidebar from '../assets/logo-yuvarlak.png'
+import logoSidebar from '../assets/logo-thumb.webp'
 
 const ADMIN_ITEMS = [
   { to: '/admin/dashboard', label: 'Dashboard', Icon: LayoutDashboard },

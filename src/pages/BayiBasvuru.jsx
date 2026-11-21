@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
-import logoYuvarlak from '../assets/logo-yuvarlak.png'
+import logoYuvarlak from '../assets/logo-yuvarlak.webp'
 
 const emptyForm = {
   full_name: '',

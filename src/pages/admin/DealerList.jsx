@@ -28,27 +28,36 @@ export default function DealerList() {
   async function fetchDealers() {
     setLoading(true)
 
-    const { data: dealerData } = await supabase
-      .from('dealers')
-      .select('id, name, tax_no, phone')
-      .order('name')
+    const [dealerRes, kpiRes] = await Promise.all([
+      supabase.from('dealers').select('id, name, tax_no, phone').order('name'),
+      supabase.rpc('admin_dashboard_kpi'),
+    ])
 
-    const { data: txData } = await supabase
-      .from('transactions')
-      .select('dealer_id, transaction_type, amount')
-
-    const balanceMap = {}
-    for (const tx of txData || []) {
-      if (!balanceMap[tx.dealer_id]) balanceMap[tx.dealer_id] = 0
-      if (tx.transaction_type === 'DEBT') {
-        balanceMap[tx.dealer_id] += Number(tx.amount)
-      } else {
-        balanceMap[tx.dealer_id] -= Number(tx.amount)
+    let balanceMap = {}
+    if (!kpiRes.error && kpiRes.data?.dealer_balances) {
+      balanceMap = kpiRes.data.dealer_balances
+    } else {
+      const { data: txData } = await supabase
+        .from('transactions')
+        .select('dealer_id, transaction_type, amount')
+      for (const tx of txData || []) {
+        if (!balanceMap[tx.dealer_id]) balanceMap[tx.dealer_id] = 0
+        if (tx.transaction_type === 'DEBT') {
+          balanceMap[tx.dealer_id] += Number(tx.amount)
+        } else {
+          balanceMap[tx.dealer_id] -= Number(tx.amount)
+        }
       }
     }
 
-    setDealers(dealerData || [])
-    setBalances(balanceMap)
+    // JSON anahtarları string olabilir
+    const normalized = {}
+    for (const [k, v] of Object.entries(balanceMap)) {
+      normalized[k] = Number(v) || 0
+    }
+
+    setDealers(dealerRes.data || [])
+    setBalances(normalized)
     setLoading(false)
   }
 

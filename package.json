@@ -10,7 +10,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "seed:demo": "node scripts/seed-app-store-demo.mjs",
-    "ui:mobile-check": "node scripts/mobile-ui-check.mjs"
+    "ui:mobile-check": "node scripts/mobile-ui-check.mjs",
+    "perf:measure": "node scripts/perf-measure.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.1",

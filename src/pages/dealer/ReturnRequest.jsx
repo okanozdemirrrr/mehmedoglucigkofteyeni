@@ -52,9 +52,10 @@ export default function ReturnRequest() {
       supabase.from('products').select('id, name').eq('is_active', true).order('name'),
       supabase
         .from('return_requests')
-        .select('*')
+        .select('id, product_name, quantity, reason, status, created_at, dealer_id')
         .eq('dealer_id', dealerId)
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(50),
     ])
 
     setProducts(productsRes.data || [])

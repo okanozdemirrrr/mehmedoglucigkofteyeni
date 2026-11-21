@@ -1,5 +1,3 @@
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import { formatCurrency, formatDate } from './format'
 
 function txLabel(tx) {
@@ -15,10 +13,15 @@ function txSignedAmount(tx) {
 
 /**
  * Bayi cari hareketlerinden PDF ekstre üretir ve indirir.
- * @param {{ name: string, tax_no?: string, phone?: string }} dealer
- * @param {Array} transactions - kronolojik (eskiden yeniye) veya ters; içeride sıralanır
+ * jspdf / html2canvas yalnızca tıklanınca yüklenir (ana bundle dışı).
  */
-export function downloadCariEkstrePdf(dealer, transactions) {
+export async function downloadCariEkstrePdf(dealer, transactions) {
+  const [{ jsPDF }, autoTableMod] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ])
+  const autoTable = autoTableMod.default
+
   const sorted = [...(transactions || [])].sort(
     (a, b) => new Date(a.created_at) - new Date(b.created_at)
   )

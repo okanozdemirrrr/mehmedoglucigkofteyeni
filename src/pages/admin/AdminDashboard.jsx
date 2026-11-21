@@ -45,7 +45,7 @@ export default function AdminDashboard() {
       // Realtime tetiklerinde ekranı "Yükleniyor..." ile silme
       refreshTimer = window.setTimeout(() => {
         void fetchDashboardData({ silent: true })
-      }, 350)
+      }, 1200)
     }
 
     const channel = supabase
@@ -80,64 +80,74 @@ export default function AdminDashboard() {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
     const since = sevenDaysAgo.toISOString()
 
-    const [
-      deliveredRes,
-      transactionsRes,
-      pendingRes,
-      activeRes,
-      archiveRes,
-      dealersRes,
-      returnsRes,
-    ] = await Promise.all([
-      supabase.from('orders').select('total_amount').eq('status', 'DELIVERED'),
-      supabase.from('transactions').select('dealer_id, transaction_type, amount'),
-      supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
+    const [kpiRes, activeRes, archiveRes, dealersRes, returnsRes] = await Promise.all([
+      supabase.rpc('admin_dashboard_kpi'),
       supabase
         .from('orders')
-        .select('id, total_amount, status, created_at, dealers ( name ), order_items ( id, quantity, unit_price, product:products ( name, product_code ), selected_modifiers_jsonb )')
+        .select(
+          'id, total_amount, status, created_at, dealers ( name ), order_items ( id, quantity, unit_price, product:products ( name, product_code ), selected_modifiers_jsonb )'
+        )
         .in('status', ['PENDING', 'PREPARING', 'ON_THE_WAY'])
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(60),
       supabase
         .from('orders')
         .select('id, total_amount, updated_at, dealers ( name )')
         .eq('status', 'DELIVERED')
         .gte('updated_at', since)
-        .order('updated_at', { ascending: false }),
-      supabase.from('dealers').select('id, name'),
+        .order('updated_at', { ascending: false })
+        .limit(40),
+      supabase.from('dealers').select('id, name').order('name'),
       supabase
         .from('return_requests')
         .select('id, product_name, quantity, reason, created_at, dealers ( name )')
         .eq('status', 'PENDING')
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(40),
     ])
 
-    setTotalRevenue(
-      (deliveredRes.data || []).reduce((sum, o) => sum + Number(o.total_amount), 0)
-    )
+    const kpi = kpiRes.data || {}
+    const balanceByDealer = kpi.dealer_balances || {}
 
-    const balanceByDealer = {}
-    for (const tx of transactionsRes.data || []) {
-      if (!balanceByDealer[tx.dealer_id]) balanceByDealer[tx.dealer_id] = 0
-      balanceByDealer[tx.dealer_id] +=
-        tx.transaction_type === 'DEBT' ? Number(tx.amount) : -Number(tx.amount)
+    // RPC yoksa (migration öncesi) güvenli geri dönüş
+    if (kpiRes.error) {
+      const [deliveredRes, transactionsRes, pendingRes] = await Promise.all([
+        supabase.from('orders').select('total_amount').eq('status', 'DELIVERED'),
+        supabase.from('transactions').select('dealer_id, transaction_type, amount'),
+        supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
+      ])
+      setTotalRevenue(
+        (deliveredRes.data || []).reduce((sum, o) => sum + Number(o.total_amount), 0)
+      )
+      const fallbackBalances = {}
+      for (const tx of transactionsRes.data || []) {
+        if (!fallbackBalances[tx.dealer_id]) fallbackBalances[tx.dealer_id] = 0
+        fallbackBalances[tx.dealer_id] +=
+          tx.transaction_type === 'DEBT' ? Number(tx.amount) : -Number(tx.amount)
+      }
+      setTotalReceivable(
+        Object.values(fallbackBalances).reduce((sum, bal) => sum + Math.max(bal, 0), 0)
+      )
+      setPendingCount(pendingRes.count || 0)
+      const risk = (dealersRes.data || [])
+        .map((d) => ({ ...d, balance: fallbackBalances[d.id] || 0 }))
+        .sort((a, b) => b.balance - a.balance)
+      setRiskDealers(risk)
+    } else {
+      setTotalRevenue(Number(kpi.total_revenue) || 0)
+      setTotalReceivable(Number(kpi.total_receivable) || 0)
+      setPendingCount(Number(kpi.pending_count) || 0)
+      const risk = (dealersRes.data || [])
+        .map((d) => ({
+          ...d,
+          balance: Number(balanceByDealer[d.id] ?? balanceByDealer[String(d.id)] ?? 0),
+        }))
+        .sort((a, b) => b.balance - a.balance)
+      setRiskDealers(risk)
     }
 
-    setTotalReceivable(
-      Object.values(balanceByDealer).reduce((sum, bal) => sum + Math.max(bal, 0), 0)
-    )
-
-    setPendingCount(pendingRes.count || 0)
     setActiveOrders(activeRes.data || [])
     setArchivedOrders(archiveRes.data || [])
-
-    const risk = (dealersRes.data || [])
-      .map((d) => ({
-        ...d,
-        balance: balanceByDealer[d.id] || 0,
-      }))
-      .sort((a, b) => b.balance - a.balance)
-
-    setRiskDealers(risk)
     setPendingReturns(returnsRes.data || [])
     if (!silent) setLoading(false)
   }

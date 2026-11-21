@@ -2,13 +2,16 @@ import { Capacitor } from '@capacitor/core'
 import { supabase } from './supabaseClient'
 
 /** Cihaz push token'ını Supabase'e kaydet */
-export async function registerPushToken() {
+export async function registerPushToken(existingUserId) {
   if (!supabase) return null
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return null
+  // getUser() ağ turu yapar; oturum zaten varsa session'dan al
+  let userId = existingUserId || null
+  if (!userId) {
+    const { data } = await supabase.auth.getSession()
+    userId = data?.session?.user?.id || null
+  }
+  if (!userId) return null
 
   let token = null
   let platform = 'web'
@@ -93,7 +96,7 @@ export async function fetchNotifications(limit = 40) {
   if (!supabase) return []
   const { data, error } = await supabase
     .from('notifications')
-    .select('*')
+    .select('id, title, body, type, link, is_read, created_at, data')
     .order('created_at', { ascending: false })
     .limit(limit)
 

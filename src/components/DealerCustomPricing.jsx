@@ -18,8 +18,11 @@ export default function DealerCustomPricing({ dealerId }) {
     setLoading(true)
 
     const [productsRes, pricesRes] = await Promise.all([
-      supabase.from('products').select('id, name, product_code, base_price').order('name'),
-      supabase.from('dealer_prices').select('*').eq('dealer_id', dealerId),
+      supabase.from('products').select('id, name, product_code, base_price').eq('is_active', true).order('name'),
+      supabase
+        .from('dealer_prices')
+        .select('id, dealer_id, product_id, custom_price')
+        .eq('dealer_id', dealerId),
     ])
 
     setProducts(productsRes.data || [])

@@ -3,6 +3,8 @@ import { supabase, isSupabaseConfigured } from '../lib/supabaseClient'
 
 let didInitialize = false
 const AUTH_TIMEOUT_MS = 8000
+/** Aynı kullanıcı için eşzamanlı/çift profil fetch'ini birleştir */
+let inflightProfile = null
 
 export const useAuth = create((set, get) => ({
   user: null,
@@ -33,6 +35,7 @@ export const useAuth = create((set, get) => ({
         if (session?.user) {
           void get().fetchProfile(session.user)
         } else {
+          inflightProfile = null
           set({ user: null, profile: null, loading: false })
         }
       }, 0)
@@ -45,35 +48,46 @@ export const useAuth = create((set, get) => ({
       return
     }
 
-    try {
-      let { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, role, dealer_id, status, is_demo, email')
-        .eq('id', user.id)
-        .single()
+    if (inflightProfile?.userId === user.id) {
+      return inflightProfile.promise
+    }
 
-      // is_demo kolonu henüz yoksa geriye dönük uyumluluk
-      if (error && /is_demo|column/i.test(error.message || '')) {
-        const fallback = await supabase
+    const promise = (async () => {
+      try {
+        let { data, error } = await supabase
           .from('profiles')
-          .select('id, full_name, role, dealer_id, status, email')
+          .select('id, full_name, role, dealer_id, status, is_demo, email')
           .eq('id', user.id)
           .single()
-        data = fallback.data
-        error = fallback.error
-      }
 
-      if (error) {
-        console.error('Profil yüklenemedi:', error.message)
+        // is_demo kolonu henüz yoksa geriye dönük uyumluluk
+        if (error && /is_demo|column/i.test(error.message || '')) {
+          const fallback = await supabase
+            .from('profiles')
+            .select('id, full_name, role, dealer_id, status, email')
+            .eq('id', user.id)
+            .single()
+          data = fallback.data
+          error = fallback.error
+        }
+
+        if (error) {
+          console.error('Profil yüklenemedi:', error.message)
+          set({ user, profile: null, loading: false })
+          return
+        }
+
+        set({ user, profile: data, loading: false })
+      } catch (err) {
+        console.error('Profil yüklenemedi:', err)
         set({ user, profile: null, loading: false })
-        return
+      } finally {
+        if (inflightProfile?.userId === user.id) inflightProfile = null
       }
+    })()
 
-      set({ user, profile: data, loading: false })
-    } catch (err) {
-      console.error('Profil yüklenemedi:', err)
-      set({ user, profile: null, loading: false })
-    }
+    inflightProfile = { userId: user.id, promise }
+    return promise
   },
 
   signIn: async (email, password) => {
@@ -87,11 +101,12 @@ export const useAuth = create((set, get) => ({
     if (error) throw error
 
     if (data.user) {
+      // onAuthStateChange da tetiklenir; inflight dedupe çift profil isteğini birleştirir
       await get().fetchProfile(data.user)
-      // Push izni + token kaydı (native / web)
+      // Push Layout'ta da kayıt olur; burada user id ile ekstra getUser turu yok
       try {
         const { registerPushToken } = await import('../lib/notifications')
-        void registerPushToken()
+        void registerPushToken(data.user.id)
       } catch {
         /* push opsiyonel */
       }

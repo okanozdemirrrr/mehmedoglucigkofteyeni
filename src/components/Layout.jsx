@@ -34,7 +34,7 @@ export default function Layout() {
     }
 
     subscribe(user.id)
-    registerPushToken().catch(() => {})
+    registerPushToken(user.id).catch(() => {})
 
     return () => unsubscribe()
   }, [user?.id, subscribe, unsubscribe])
