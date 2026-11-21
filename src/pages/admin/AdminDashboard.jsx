@@ -94,7 +94,7 @@ export default function AdminDashboard() {
       supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
       supabase
         .from('orders')
-        .select('id, total_amount, status, created_at, dealers ( name ), order_items ( id, quantity, unit_price, product:products ( name ), selected_modifiers_jsonb )')
+        .select('id, total_amount, status, created_at, dealers ( name ), order_items ( id, quantity, unit_price, product:products ( name, product_code ), selected_modifiers_jsonb )')
         .in('status', ['PENDING', 'PREPARING', 'ON_THE_WAY'])
         .order('created_at', { ascending: false }),
       supabase
@@ -303,6 +303,11 @@ export default function AdminDashboard() {
                                       return (
                                         <li key={item.id} className="text-sm text-gray-800 break-words">
                                           <span className="font-medium">{item.quantity} x</span>{' '}
+                                          {item.product?.product_code && (
+                                            <span className="font-mono text-xs text-gray-500 mr-1">
+                                              {item.product.product_code}
+                                            </span>
+                                          )}
                                           {item.product?.name || 'Ürün adı yok'}
                                           {options && (
                                             <span className="text-xs text-gray-600 ml-2">

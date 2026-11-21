@@ -23,10 +23,27 @@ export function extractStoragePathFromPublicUrl(url) {
   }
 }
 
+function detectMime(file) {
+  const typed = String(file?.type || '').toLowerCase()
+  if (ALLOWED.has(typed)) return typed
+  const name = String(file?.name || '').toLowerCase()
+  if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'image/jpeg'
+  if (name.endsWith('.png')) return 'image/png'
+  if (name.endsWith('.webp')) return 'image/webp'
+  if (name.endsWith('.heic') || name.endsWith('.heif') || typed.includes('heic') || typed.includes('heif')) {
+    return 'image/heic'
+  }
+  return typed
+}
+
 /** Dosyayı doğrula, uzun kenarı ~1000px’e küçült, JPEG üret */
 export async function prepareProductImage(file) {
   if (!file) throw new Error('Dosya seçilmedi.')
-  if (!ALLOWED.has(file.type)) {
+  const mime = detectMime(file)
+  if (mime === 'image/heic') {
+    throw new Error('HEIC desteklenmiyor. Lütfen JPG, PNG veya WEBP seçin.')
+  }
+  if (!ALLOWED.has(mime)) {
     throw new Error('Sadece JPG, PNG veya WEBP yükleyebilirsiniz.')
   }
   if (file.size > MAX_BYTES) {

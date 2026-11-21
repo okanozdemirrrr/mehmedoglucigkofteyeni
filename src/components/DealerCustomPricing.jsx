@@ -18,7 +18,7 @@ export default function DealerCustomPricing({ dealerId }) {
     setLoading(true)
 
     const [productsRes, pricesRes] = await Promise.all([
-      supabase.from('products').select('id, name, base_price').order('name'),
+      supabase.from('products').select('id, name, product_code, base_price').order('name'),
       supabase.from('dealer_prices').select('*').eq('dealer_id', dealerId),
     ])
 
@@ -131,6 +131,11 @@ export default function DealerCustomPricing({ dealerId }) {
                 return (
                   <tr key={product.id} className="border-b border-gray-50 hover:bg-gray-50/50">
                     <td data-label="Ürün" className="px-5 py-3 text-gray-900 font-medium">
+                      {product.product_code && (
+                        <span className="font-mono text-[11px] text-gray-500 mr-1.5">
+                          {product.product_code}
+                        </span>
+                      )}
                       {product.name}
                     </td>
                     <td data-label="Standart Fiyat" className="px-5 py-3 text-right text-gray-600">

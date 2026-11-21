@@ -19,6 +19,7 @@ function OrderItemsList({ items }) {
     <div className="space-y-2">
       {items.map((item) => {
         const name = item.products?.name || 'Ürün'
+        const code = item.products?.product_code
         const mods = formatModifiers(item.selected_modifiers_jsonb)
         const lineTotal = Number(item.unit_price) * Number(item.quantity)
 
@@ -28,6 +29,9 @@ function OrderItemsList({ items }) {
             className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 py-2 border-b border-gray-100 last:border-0 text-xs"
           >
             <div className="text-gray-900 min-w-0">
+              {code && (
+                <span className="font-mono text-gray-500 mr-1.5">{code}</span>
+              )}
               {name}
               {mods && <span className="text-gray-400 ml-1">({mods})</span>}
             </div>

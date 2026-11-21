@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom'
 import { fetchPublicProducts } from '../lib/publicCatalog'
 import ProductThumb from '../components/ProductThumb'
 import logoYuvarlak from '../assets/logo-yuvarlak.png'
-
-const SUPPORT_EMAIL = 'destek@regonteknoloji.com'
+import { SUPPORT_EMAIL } from '../lib/appConfig'
 
 export default function ProductCatalog() {
   const [products, setProducts] = useState([])

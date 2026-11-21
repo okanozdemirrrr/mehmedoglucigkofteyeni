@@ -16,7 +16,7 @@ const emptyForm = {
 }
 
 const inputClass =
-  'w-full px-3 py-2.5 text-base md:text-sm border border-gray-300 rounded-sm focus:outline-none focus:border-[#580F1C] focus:ring-1 focus:ring-[#580F1C]'
+  'w-full min-h-11 px-3 py-2.5 text-base border border-gray-300 rounded-sm focus:outline-none focus:border-[#580F1C] focus:ring-1 focus:ring-[#580F1C]'
 
 export default function BayiBasvuru() {
   const navigate = useNavigate()
@@ -56,6 +56,7 @@ export default function BayiBasvuru() {
     }
 
     try {
+      // Şifre yalnızca Supabase Auth'a gider (hash); profiles tablosuna yazılmaz.
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: form.email.trim(),
         password: form.password,
@@ -94,7 +95,7 @@ export default function BayiBasvuru() {
               'Başvurunuz alındı. Yöneticiler onayladıktan sonra giriş yapabilirsiniz.',
           },
         })
-      }, 1800)
+      }, 2200)
     } catch (err) {
       const msg = String(err?.message || '').toLowerCase()
       if (
@@ -121,21 +122,21 @@ export default function BayiBasvuru() {
   }
 
   return (
-    <div className="relative h-dvh min-h-screen bg-[#580F1C] flex items-center justify-center px-4 overflow-hidden safe-area-pad-t safe-area-pad-b pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+    <div className="relative min-h-dvh min-h-screen bg-[#580F1C] overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] safe-area-pad-t safe-area-pad-b">
       <img
         src={logoYuvarlak}
         alt=""
         aria-hidden="true"
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] sm:w-[480px] sm:h-[480px] opacity-[0.06] pointer-events-none select-none"
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] sm:w-[480px] sm:h-[480px] opacity-[0.06] pointer-events-none select-none"
       />
 
-      <div className="relative w-full max-w-md z-10">
-        <div className="bg-white rounded-sm p-5 sm:p-8 shadow-2xl animate-fade-in-up">
+      <div className="relative z-10 w-full max-w-md mx-auto px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.5rem,calc(env(safe-area-inset-bottom)+1rem))]">
+        <div className="bg-white rounded-sm p-5 sm:p-8 shadow-2xl animate-fade-in-up my-4 sm:my-8">
           <Link
             to="/login"
-            className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mb-6"
+            className="inline-flex items-center gap-1.5 min-h-11 text-sm text-gray-500 hover:text-gray-700 mb-4"
           >
-            <ArrowLeft size={14} />
+            <ArrowLeft size={16} />
             Giriş sayfasına dön
           </Link>
 
@@ -147,7 +148,8 @@ export default function BayiBasvuru() {
           {success ? (
             <div className="space-y-3">
               <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-sm px-3 py-3">
-                Başvurunuz alındı. Yöneticiler onayladıktan sonra giriş yapabilirsiniz.
+                Başvurunuz alındı. Onay sonrası giriş yapabilirsiniz. Dağıtıcıya bildirim
+                gönderildi.
               </p>
               <p className="text-xs text-gray-400 text-center">Giriş ekranına yönlendiriliyorsunuz...</p>
             </div>
@@ -160,6 +162,7 @@ export default function BayiBasvuru() {
                   value={form.full_name}
                   onChange={handleChange}
                   required
+                  autoComplete="name"
                   className={inputClass}
                 />
               </div>
@@ -172,6 +175,7 @@ export default function BayiBasvuru() {
                     type="number"
                     min="18"
                     max="100"
+                    inputMode="numeric"
                     value={form.age}
                     onChange={handleChange}
                     required
@@ -198,6 +202,7 @@ export default function BayiBasvuru() {
                     value={form.city}
                     onChange={handleChange}
                     required
+                    autoComplete="address-level1"
                     className={inputClass}
                   />
                 </div>
@@ -208,6 +213,7 @@ export default function BayiBasvuru() {
                     value={form.district}
                     onChange={handleChange}
                     required
+                    autoComplete="address-level2"
                     className={inputClass}
                   />
                 </div>
@@ -222,6 +228,7 @@ export default function BayiBasvuru() {
                   onChange={handleChange}
                   required
                   placeholder="05xx xxx xx xx"
+                  autoComplete="tel"
                   className={inputClass}
                 />
               </div>
@@ -234,6 +241,7 @@ export default function BayiBasvuru() {
                   value={form.email}
                   onChange={handleChange}
                   required
+                  autoComplete="email"
                   className={inputClass}
                 />
               </div>
@@ -247,20 +255,22 @@ export default function BayiBasvuru() {
                   onChange={handleChange}
                   required
                   minLength={6}
+                  autoComplete="new-password"
                   className={inputClass}
                 />
                 <p className="text-[10px] text-gray-400 mt-1">
-                  Şifreniz güvenli saklanır; yöneticiler şifrenizi göremez.
+                  Şifreniz yalnızca kimlik doğrulama sisteminde güvenli (hash) saklanır; yöneticiler
+                  şifrenizi göremez ve veritabanında düz metin tutulmaz.
                 </p>
               </div>
 
-              <label className="flex items-start gap-2.5 cursor-pointer select-none pt-1">
+              <label className="flex items-start gap-3 cursor-pointer select-none pt-1 min-h-11">
                 <input
                   type="checkbox"
                   checked={kvkkAccepted}
                   onChange={(e) => setKvkkAccepted(e.target.checked)}
                   required
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#580F1C] border-gray-300 rounded-sm"
+                  className="mt-1 h-5 w-5 shrink-0 accent-[#580F1C] border-gray-300 rounded-sm"
                 />
                 <span className="text-xs text-gray-600 leading-relaxed">
                   <Link
@@ -283,7 +293,7 @@ export default function BayiBasvuru() {
               <button
                 type="submit"
                 disabled={submitting || !kvkkAccepted}
-                className="w-full py-2.5 text-sm font-medium text-white bg-[#580F1C] rounded-sm hover:bg-[#3d0a13] disabled:opacity-50 transition-colors"
+                className="w-full min-h-11 py-2.5 text-sm font-medium text-white bg-[#580F1C] rounded-sm hover:bg-[#3d0a13] disabled:opacity-50 transition-colors"
               >
                 {submitting ? 'Gönderiliyor...' : 'Başvuru Gönder'}
               </button>

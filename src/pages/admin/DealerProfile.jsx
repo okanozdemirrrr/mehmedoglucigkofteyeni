@@ -77,7 +77,7 @@ export default function DealerProfile() {
             quantity,
             unit_price,
             selected_modifiers_jsonb,
-            products ( name )
+            products ( name, product_code )
           )
         `
         )

@@ -34,6 +34,9 @@ function ProductOrderRow({
           rounded
         />
         <div className="min-w-0 flex-1">
+          {product.product_code && (
+            <p className="text-[11px] font-mono text-gray-500">{product.product_code}</p>
+          )}
           <p className="text-sm font-medium text-gray-900">{product.name}</p>
           <p className="text-sm text-gray-600 mt-0.5">{formatCurrency(getProductPrice(product))}</p>
         </div>
@@ -163,7 +166,7 @@ export default function BayiDashboard() {
             quantity,
             unit_price,
             selected_modifiers_jsonb,
-            products ( name )
+            products ( name, product_code )
           )
         `
         )
@@ -272,6 +275,7 @@ export default function BayiDashboard() {
       ...prev,
       {
         product_id: product.id,
+        product_code: product.product_code || null,
         product_name: product.name,
         quantity: qty,
         unit_price: price,
@@ -430,6 +434,9 @@ export default function BayiDashboard() {
                   {cart.map((item, index) => (
                     <div key={index} className="px-5 py-3 flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
+                        {item.product_code && (
+                          <p className="text-[11px] font-mono text-gray-500">{item.product_code}</p>
+                        )}
                         <p className="text-sm text-gray-900 truncate">{item.product_name}</p>
                         <p className="text-xs text-gray-500">
                           {item.quantity} x {formatCurrency(item.unit_price)}

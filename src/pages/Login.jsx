@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Building2, Store } from 'lucide-react'
 import { useAuth } from '../store/useAuth'
+import { SUPPORT_EMAIL } from '../lib/appConfig'
 import logoYuvarlak from '../assets/logo-yuvarlak.png'
 
 function mapAuthError(err) {
@@ -293,10 +294,10 @@ export default function Login() {
             <p className="text-[11px] text-gray-400">
               Destek:{' '}
               <a
-                href="mailto:destek@regonteknoloji.com"
+                href={`mailto:${SUPPORT_EMAIL}`}
                 className="underline underline-offset-2 hover:text-gray-600"
               >
-                destek@regonteknoloji.com
+                {SUPPORT_EMAIL}
               </a>
             </p>
           </div>

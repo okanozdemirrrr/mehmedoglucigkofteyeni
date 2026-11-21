@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-
-const SUPPORT_EMAIL = 'destek@regonteknoloji.com'
+import { SUPPORT_EMAIL } from '../lib/appConfig'
 
 export default function Gizlilik() {
   return (

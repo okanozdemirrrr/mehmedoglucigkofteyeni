@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Trash2, Pencil, X } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import { formatCurrency } from '../../utils/format'
 import { StackTableWrap, stackTableClass } from '../../components/StackTable'
 import ProductThumb from '../../components/ProductThumb'
+import { useNotifications } from '../../store/useNotifications'
 import {
+  prepareProductImage,
   uploadProductImage,
   removeProductImageFile,
 } from '../../lib/productImages'
@@ -53,15 +55,14 @@ function ImagePicker({ previewUrl, onFile, onClear, disabled, inputId }) {
           <input
             id={inputId}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/*"
-            capture="environment"
+            accept="image/jpeg,image/png,image/webp"
             disabled={disabled}
             onChange={(e) => {
               const file = e.target.files?.[0] || null
-              onFile(file)
+              void onFile(file)
               e.target.value = ''
             }}
-            className="block w-full max-w-xs text-xs text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-sm file:border-0 file:text-xs file:font-medium file:bg-[#580F1C]/10 file:text-[#580F1C] hover:file:bg-[#580F1C]/15"
+            className="block w-full max-w-xs min-h-11 text-xs text-gray-600 file:mr-3 file:min-h-11 file:py-2 file:px-3 file:rounded-sm file:border-0 file:text-xs file:font-medium file:bg-[#580F1C]/10 file:text-[#580F1C] hover:file:bg-[#580F1C]/15"
           />
           <p className="text-[10px] text-gray-400">JPG / PNG / WEBP · en fazla 5 MB</p>
           {previewUrl && (
@@ -69,7 +70,7 @@ function ImagePicker({ previewUrl, onFile, onClear, disabled, inputId }) {
               type="button"
               disabled={disabled}
               onClick={onClear}
-              className="self-start text-xs text-red-600 hover:text-red-700 disabled:opacity-50"
+              className="self-start min-h-11 text-xs text-red-600 hover:text-red-700 disabled:opacity-50"
             >
               Görseli kaldır
             </button>
@@ -81,8 +82,12 @@ function ImagePicker({ previewUrl, onFile, onClear, disabled, inputId }) {
 }
 
 export default function MenuManagement() {
+  const showToast = useNotifications((s) => s.showToast)
+  const editPanelRef = useRef(null)
+  const editNameRef = useRef(null)
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
+  const [productSearch, setProductSearch] = useState('')
   const [selectedCategoryId, setSelectedCategoryId] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -91,18 +96,31 @@ export default function MenuManagement() {
   const [categoryError, setCategoryError] = useState('')
 
   const [productForm, setProductForm] = useState(emptyProductForm)
-  const [createImageFile, setCreateImageFile] = useState(null)
+  const [createImageFile, setCreateImageFileState] = useState(null)
   const [createPreview, setCreatePreview] = useState(null)
   const [productSubmitting, setProductSubmitting] = useState(false)
   const [productError, setProductError] = useState('')
 
   const [editing, setEditing] = useState(null)
   const [editForm, setEditForm] = useState(emptyProductForm)
-  const [editImageFile, setEditImageFile] = useState(null)
+  const [editImageFile, setEditImageFileState] = useState(null)
   const [editPreview, setEditPreview] = useState(null)
   const [editRemoveImage, setEditRemoveImage] = useState(false)
   const [editSubmitting, setEditSubmitting] = useState(false)
   const [editError, setEditError] = useState('')
+
+  const filteredProducts = products.filter((p) => {
+    const q = productSearch.trim().toLowerCase()
+    if (!q) return true
+    return (
+      String(p.name || '')
+        .toLowerCase()
+        .includes(q) ||
+      String(p.product_code || '')
+        .toLowerCase()
+        .includes(q)
+    )
+  })
 
   useEffect(() => {
     fetchCategories()
@@ -141,23 +159,45 @@ export default function MenuManagement() {
   }
 
   async function fetchProducts(categoryId) {
-    const { data } = await supabase
+    let { data, error } = await supabase
       .from('products')
-      .select('id, name, base_price, is_active, category_id, image_url, modifiers_jsonb')
+      .select('id, name, product_code, base_price, is_active, category_id, image_url, modifiers_jsonb')
       .eq('category_id', categoryId)
       .order('name')
+
+    // Migration henüz uygulanmadıysa product_code olmadan yükle
+    if (error && /product_code|column/i.test(error.message || '')) {
+      const fallback = await supabase
+        .from('products')
+        .select('id, name, base_price, is_active, category_id, image_url, modifiers_jsonb')
+        .eq('category_id', categoryId)
+        .order('name')
+      data = fallback.data
+    }
 
     setProducts(data || [])
   }
 
-  function setCreateFile(file) {
-    if (createPreview?.startsWith('blob:')) URL.revokeObjectURL(createPreview)
-    setCreateImageFile(file)
-    setCreatePreview(file ? URL.createObjectURL(file) : null)
+  async function setCreateFile(file) {
+    setProductError('')
+    if (!file) {
+      if (createPreview?.startsWith('blob:')) URL.revokeObjectURL(createPreview)
+      setCreateImageFileState(null)
+      setCreatePreview(null)
+      return
+    }
+    try {
+      await prepareProductImage(file)
+      if (createPreview?.startsWith('blob:')) URL.revokeObjectURL(createPreview)
+      setCreateImageFileState(file)
+      setCreatePreview(URL.createObjectURL(file))
+    } catch (err) {
+      setProductError(err?.message || 'Görsel seçilemedi.')
+    }
   }
 
   function clearCreateImage() {
-    setCreateFile(null)
+    void setCreateFile(null)
   }
 
   function openEdit(product) {
@@ -169,33 +209,67 @@ export default function MenuManagement() {
       is_active: Boolean(product.is_active),
       requires_spiciness: productHasSpiciness(product),
     })
-    setEditImageFile(null)
+    setEditImageFileState(null)
     setEditPreview(product.image_url || null)
     setEditRemoveImage(false)
     setEditError('')
+    showToast({
+      title: 'Düzenleme',
+      body: 'Ürünü düzenleme kutusu aşağıda açıldı',
+    })
+    window.requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        editPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        // Odak ver ama iOS klavyeyi zorla açma (readOnly kısa süreli)
+        const input = editNameRef.current
+        if (input) {
+          const prev = input.readOnly
+          input.readOnly = true
+          input.focus({ preventScroll: true })
+          window.setTimeout(() => {
+            input.readOnly = prev
+          }, 50)
+        }
+      }, 80)
+    })
   }
 
   function closeEdit() {
     if (editPreview?.startsWith('blob:')) URL.revokeObjectURL(editPreview)
     setEditing(null)
-    setEditImageFile(null)
+    setEditImageFileState(null)
     setEditPreview(null)
     setEditRemoveImage(false)
     setEditError('')
   }
 
-  function setEditFile(file) {
-    if (editPreview?.startsWith('blob:') && editImageFile) {
-      URL.revokeObjectURL(editPreview)
+  async function setEditFile(file) {
+    setEditError('')
+    if (!file) {
+      if (editPreview?.startsWith('blob:') && editImageFile) {
+        URL.revokeObjectURL(editPreview)
+      }
+      setEditImageFileState(null)
+      setEditRemoveImage(false)
+      setEditPreview(editing?.image_url || null)
+      return
     }
-    setEditImageFile(file)
-    setEditRemoveImage(false)
-    setEditPreview(file ? URL.createObjectURL(file) : editing?.image_url || null)
+    try {
+      await prepareProductImage(file)
+      if (editPreview?.startsWith('blob:') && editImageFile) {
+        URL.revokeObjectURL(editPreview)
+      }
+      setEditImageFileState(file)
+      setEditRemoveImage(false)
+      setEditPreview(URL.createObjectURL(file))
+    } catch (err) {
+      setEditError(err?.message || 'Görsel seçilemedi.')
+    }
   }
 
   function clearEditImage() {
     if (editPreview?.startsWith('blob:')) URL.revokeObjectURL(editPreview)
-    setEditImageFile(null)
+    setEditImageFileState(null)
     setEditPreview(null)
     setEditRemoveImage(true)
   }
@@ -490,10 +564,19 @@ export default function MenuManagement() {
 
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white border border-gray-200 rounded-sm">
-            <div className="px-5 py-4 border-b border-gray-200">
+            <div className="px-5 py-4 border-b border-gray-200 space-y-3">
               <h2 className="text-sm font-semibold text-gray-900">
                 {selectedCategory ? `${selectedCategory.name} — Ürünler` : 'Kategori Seçin'}
               </h2>
+              {selectedCategoryId && products.length > 0 && (
+                <input
+                  type="search"
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  placeholder="Ürün adı veya kodu ara…"
+                  className="w-full min-h-11 px-3 py-2.5 text-base border border-gray-300 rounded-sm focus:outline-none focus:border-[#580F1C]"
+                />
+              )}
             </div>
 
             {!selectedCategoryId ? (
@@ -504,6 +587,10 @@ export default function MenuManagement() {
               <p className="px-5 py-8 text-sm text-gray-400 text-center">
                 Bu kategoride henüz ürün yok.
               </p>
+            ) : filteredProducts.length === 0 ? (
+              <p className="px-5 py-8 text-sm text-gray-400 text-center">
+                Aramanızla eşleşen ürün yok.
+              </p>
             ) : (
               <StackTableWrap>
                 <table className={stackTableClass()}>
@@ -511,6 +598,9 @@ export default function MenuManagement() {
                     <tr className="border-b border-gray-100 bg-gray-50">
                       <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">
                         Görsel
+                      </th>
+                      <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">
+                        Kod
                       </th>
                       <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">
                         Ürün
@@ -527,7 +617,7 @@ export default function MenuManagement() {
                     </tr>
                   </thead>
                   <tbody>
-                    {products.map((p) => (
+                    {filteredProducts.map((p) => (
                       <tr key={p.id} className="border-b border-gray-50">
                         <td data-label="Görsel" className="px-5 py-3">
                           <ProductThumb
@@ -536,6 +626,9 @@ export default function MenuManagement() {
                             className="w-12 h-12"
                             rounded
                           />
+                        </td>
+                        <td data-label="Kod" className="px-5 py-3 text-xs font-mono text-gray-600">
+                          {p.product_code || '—'}
                         </td>
                         <td data-label="Ürün" className="px-5 py-3 text-gray-900 font-medium">
                           {p.name}
@@ -560,7 +653,7 @@ export default function MenuManagement() {
                               type="button"
                               title="Düzenle"
                               onClick={() => openEdit(p)}
-                              className="inline-flex p-1.5 text-gray-400 hover:text-[#580F1C] transition-colors"
+                              className="inline-flex items-center justify-center min-h-11 min-w-11 p-1.5 text-gray-400 hover:text-[#580F1C] transition-colors"
                             >
                               <Pencil size={14} />
                             </button>
@@ -568,7 +661,7 @@ export default function MenuManagement() {
                               type="button"
                               title="Ürünü sil"
                               onClick={() => handleDeleteProduct(p)}
-                              className="inline-flex p-1.5 text-gray-300 hover:text-red-600 transition-colors"
+                              className="inline-flex items-center justify-center min-h-11 min-w-11 p-1.5 text-gray-300 hover:text-red-600 transition-colors"
                             >
                               <Trash2 size={14} />
                             </button>
@@ -583,13 +676,16 @@ export default function MenuManagement() {
           </div>
 
           {editing && (
-            <div className="bg-white border border-gray-200 rounded-sm p-5">
+            <div
+              ref={editPanelRef}
+              className="bg-white border border-gray-200 rounded-sm p-5 scroll-mt-[calc(env(safe-area-inset-top)+5.5rem)]"
+            >
               <div className="flex items-center justify-between gap-3 mb-4">
                 <h3 className="text-sm font-semibold text-gray-900">Ürünü Düzenle</h3>
                 <button
                   type="button"
                   onClick={closeEdit}
-                  className="p-1 text-gray-400 hover:text-gray-700"
+                  className="inline-flex items-center justify-center min-h-11 min-w-11 p-1 text-gray-400 hover:text-gray-700"
                   aria-label="Kapat"
                 >
                   <X size={16} />
@@ -597,13 +693,24 @@ export default function MenuManagement() {
               </div>
               <form onSubmit={handleSaveEdit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Ürün Kodu</label>
+                  <input
+                    type="text"
+                    value={editing.product_code || '—'}
+                    readOnly
+                    tabIndex={-1}
+                    className="w-full min-h-11 px-3 py-2.5 text-base font-mono bg-gray-50 text-gray-600 border border-gray-200 rounded-sm"
+                  />
+                </div>
+                <div className="sm:col-span-2">
                   <label className="block text-xs font-medium text-gray-700 mb-1">Ürün Adı *</label>
                   <input
+                    ref={editNameRef}
                     type="text"
                     value={editForm.name}
                     onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
                     required
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-sm focus:outline-none focus:border-[#580F1C]"
+                    className="w-full min-h-11 px-3 py-2.5 text-base border border-gray-300 rounded-sm focus:outline-none focus:border-[#580F1C]"
                   />
                 </div>
                 <div>
@@ -699,13 +806,23 @@ export default function MenuManagement() {
                 className="grid grid-cols-1 sm:grid-cols-2 gap-4"
               >
                 <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Ürün Kodu</label>
+                  <input
+                    type="text"
+                    value="Otomatik atanır (URN-####)"
+                    readOnly
+                    tabIndex={-1}
+                    className="w-full min-h-11 px-3 py-2.5 text-base font-mono bg-gray-50 text-gray-500 border border-gray-200 rounded-sm"
+                  />
+                </div>
+                <div className="sm:col-span-2">
                   <label className="block text-xs font-medium text-gray-700 mb-1">Ürün Adı *</label>
                   <input
                     type="text"
                     value={productForm.name}
                     onChange={(e) => setProductForm((f) => ({ ...f, name: e.target.value }))}
                     required
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-sm focus:outline-none focus:border-[#580F1C]"
+                    className="w-full min-h-11 px-3 py-2.5 text-base border border-gray-300 rounded-sm focus:outline-none focus:border-[#580F1C]"
                   />
                 </div>
 

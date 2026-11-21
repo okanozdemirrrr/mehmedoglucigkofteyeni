@@ -167,6 +167,33 @@ async function main() {
         await page.getByLabel('Bildirimler').click().catch(() => {})
         await sleep(300)
         await shot(page, 'admin-notifications', width, failedRef)
+        await page.keyboard.press('Escape').catch(() => {})
+
+        await page.goto(`${BASE}/admin/ayarlar`, {
+          waitUntil: 'domcontentloaded',
+          timeout: 30000,
+        })
+        await sleep(500)
+        await shot(page, 'admin-ayarlar', width, failedRef)
+        await page.getByRole('button', { name: 'Düzenle' }).click().catch(() => {})
+        await sleep(400)
+        await shot(page, 'admin-ayarlar-edit', width, failedRef)
+
+        await page.goto(`${BASE}/admin/menu`, {
+          waitUntil: 'domcontentloaded',
+          timeout: 30000,
+        })
+        await sleep(1200)
+        await shot(page, 'admin-menu', width, failedRef)
+        const editBtn = page.getByTitle('Düzenle').first()
+        try {
+          await editBtn.waitFor({ state: 'visible', timeout: 8000 })
+          await editBtn.click()
+          await sleep(900)
+          await shot(page, 'admin-menu-edit', width, failedRef)
+        } catch {
+          console.warn(`WARN admin-menu-edit @${width}px: Düzenle butonu bulunamadı`)
+        }
       }
 
       await page.close()
