@@ -1,28 +1,32 @@
-import { useEffect, lazy, Suspense } from 'react'
+import { useEffect, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import { useAuth } from './store/useAuth'
 import SetupRequired from './components/SetupRequired'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
+import { lazyWithRetry } from './lib/lazyWithRetry'
 
-const Login = lazy(() => import('./pages/Login'))
-const BayiBasvuru = lazy(() => import('./pages/BayiBasvuru'))
-const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
-const DealerList = lazy(() => import('./pages/admin/DealerList'))
-const DealerProfile = lazy(() => import('./pages/admin/DealerProfile'))
-const MenuManagement = lazy(() => import('./pages/admin/MenuManagement'))
-const DealerApplications = lazy(() => import('./pages/admin/DealerApplications'))
-const BayiDashboard = lazy(() => import('./pages/dealer/BayiDashboard'))
-const ReturnRequest = lazy(() => import('./pages/dealer/ReturnRequest'))
-const AccountSettings = lazy(() => import('./pages/AccountSettings'))
-const Gizlilik = lazy(() => import('./pages/Gizlilik'))
-const ProductCatalog = lazy(() => import('./pages/ProductCatalog'))
-const ProductDetail = lazy(() => import('./pages/ProductDetail'))
+const Login = lazyWithRetry(() => import('./pages/Login'), 'Giriş')
+const BayiBasvuru = lazyWithRetry(() => import('./pages/BayiBasvuru'), 'Bayi başvurusu')
+const AdminDashboard = lazyWithRetry(() => import('./pages/admin/AdminDashboard'), 'Admin paneli')
+const DealerList = lazyWithRetry(() => import('./pages/admin/DealerList'), 'Bayi listesi')
+const DealerProfile = lazyWithRetry(() => import('./pages/admin/DealerProfile'), 'Bayi profili')
+const MenuManagement = lazyWithRetry(() => import('./pages/admin/MenuManagement'), 'Menü yönetimi')
+const DealerApplications = lazyWithRetry(
+  () => import('./pages/admin/DealerApplications'),
+  'Başvurular'
+)
+const BayiDashboard = lazyWithRetry(() => import('./pages/dealer/BayiDashboard'), 'Bayi paneli')
+const ReturnRequest = lazyWithRetry(() => import('./pages/dealer/ReturnRequest'), 'İade')
+const AccountSettings = lazyWithRetry(() => import('./pages/AccountSettings'), 'Hesap ayarları')
+const Gizlilik = lazyWithRetry(() => import('./pages/Gizlilik'), 'Gizlilik')
+const ProductCatalog = lazyWithRetry(() => import('./pages/ProductCatalog'), 'Ürün vitrini')
+const ProductDetail = lazyWithRetry(() => import('./pages/ProductDetail'), 'Ürün detayı')
 
 function PageFallback() {
   return (
-    <div className="min-h-[40vh] flex items-center justify-center">
+    <div className="min-h-[40vh] flex items-center justify-center bg-gray-50">
       <p className="text-sm text-gray-500">Yükleniyor...</p>
     </div>
   )

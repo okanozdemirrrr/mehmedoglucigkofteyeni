@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="tr">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -7,9 +7,77 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Mehmedoğlu B2B</title>
+    <style>
+      #boot-watchdog {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        background: #f9fafb;
+        font-family: system-ui, -apple-system, sans-serif;
+        padding: 24px;
+        box-sizing: border-box;
+        align-items: center;
+        justify-content: center;
+      }
+      #boot-watchdog.show { display: flex; }
+      #boot-watchdog .card {
+        max-width: 420px;
+        width: 100%;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        padding: 20px;
+      }
+      #boot-watchdog h1 { font-size: 16px; margin: 0 0 8px; color: #111827; }
+      #boot-watchdog p { font-size: 13px; color: #6b7280; margin: 0 0 12px; line-height: 1.5; }
+      #boot-watchdog pre {
+        font-size: 11px; color: #991b1b; background: #fef2f2; border: 1px solid #fecaca;
+        border-radius: 4px; padding: 10px; white-space: pre-wrap; word-break: break-word; margin: 0 0 16px;
+      }
+      #boot-watchdog button {
+        width: 100%; min-height: 44px; background: #580F1C; color: #fff; border: 0;
+        border-radius: 4px; font-size: 14px; font-weight: 600;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <div id="boot-watchdog" role="alert" aria-live="assertive">
+      <div class="card">
+        <h1>Uygulama başlatılamadı</h1>
+        <p>Arayüz zamanında yüklenmedi. Yeniden deneyin. Aşağıdaki kısa bilgi destek için kullanılabilir.</p>
+        <pre id="boot-watchdog-msg">Zaman aşımı (6 sn)</pre>
+        <button type="button" id="boot-watchdog-retry">Yeniden dene</button>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var shown = false
+        function showWatchdog() {
+          if (shown || window.__APP_MOUNTED__) return
+          shown = true
+          var el = document.getElementById('boot-watchdog')
+          var msg = document.getElementById('boot-watchdog-msg')
+          if (msg) {
+            msg.textContent = String(window.__APP_LAST_ERROR__ || 'Zaman aşımı (6 sn) — React mount olmadı')
+              .slice(0, 280)
+          }
+          if (el) el.classList.add('show')
+        }
+        function hideWatchdog() {
+          var el = document.getElementById('boot-watchdog')
+          if (el) el.classList.remove('show')
+        }
+        window.addEventListener('app-mounted', hideWatchdog)
+        document.getElementById('boot-watchdog-retry')?.addEventListener('click', function () {
+          location.reload()
+        })
+        setTimeout(function () {
+          if (!window.__APP_MOUNTED__) showWatchdog()
+        }, 6000)
+      })()
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

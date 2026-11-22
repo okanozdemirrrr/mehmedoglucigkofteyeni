@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient'
 
 let didInitialize = false
-const AUTH_TIMEOUT_MS = 8000
+const AUTH_TIMEOUT_MS = 3000
 /** Aynı kullanıcı için eşzamanlı/çift profil fetch'ini birleştir */
 let inflightProfile = null
 
@@ -29,12 +29,22 @@ export const useAuth = create((set, get) => ({
       }
     }, AUTH_TIMEOUT_MS)
 
-    // Listener'dan önce session oku — Preferences hydrate sonrası hızlı path
-    void supabase.auth.getSession().then(({ data }) => {
-      if (data?.session?.user) {
-        void get().fetchProfile(data.session.user)
-      }
-    })
+    // Session oku — asılı kalırsa AUTH_TIMEOUT_MS misafir akışına düşer
+    void supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (data?.session?.user) {
+          void get().fetchProfile(data.session.user)
+        } else if (get().loading && !get().user) {
+          // Listener gelmeden önce boş oturum: kısa süre bekle, timeout zaten var
+        }
+      })
+      .catch((err) => {
+        console.warn('getSession başarısız', err)
+        if (get().loading && !get().user) {
+          set({ user: null, profile: null, loading: false })
+        }
+      })
 
     supabase.auth.onAuthStateChange((event, session) => {
       // Callback must stay sync. Awaiting supabase calls here deadlocks the client.
