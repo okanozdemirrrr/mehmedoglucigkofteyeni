@@ -9,23 +9,45 @@ export default function DealerCustomPricing({ dealerId }) {
   const [editingPrice, setEditingPrice] = useState({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(null)
+  const [loadError, setLoadError] = useState(null)
 
   useEffect(() => {
     fetchData()
   }, [dealerId])
 
   async function fetchData() {
+    if (!dealerId) return
     setLoading(true)
+    setLoadError(null)
 
-    const [productsRes, pricesRes] = await Promise.all([
-      supabase.from('products').select('id, name, product_code, base_price').eq('is_active', true).order('name'),
-      supabase
-        .from('dealer_prices')
-        .select('id, dealer_id, product_id, custom_price')
-        .eq('dealer_id', dealerId),
-    ])
+    let productsQuery = await supabase
+      .from('products')
+      .select('id, name, product_code, base_price')
+      .eq('is_active', true)
+      .order('name')
 
-    setProducts(productsRes.data || [])
+    // product_code migration henüz yoksa kolon olmadan yükle
+    if (productsQuery.error && /product_code|column/i.test(productsQuery.error.message || '')) {
+      productsQuery = await supabase
+        .from('products')
+        .select('id, name, base_price')
+        .eq('is_active', true)
+        .order('name')
+    }
+
+    const pricesRes = await supabase
+      .from('dealer_prices')
+      .select('id, dealer_id, product_id, custom_price')
+      .eq('dealer_id', dealerId)
+
+    if (productsQuery.error) {
+      setLoadError(productsQuery.error.message)
+      setProducts([])
+      setLoading(false)
+      return
+    }
+
+    setProducts(productsQuery.data || [])
 
     const priceMap = {}
     for (const price of pricesRes.data || []) {
@@ -109,8 +131,13 @@ export default function DealerCustomPricing({ dealerId }) {
         </p>
       </div>
 
-      {products.length === 0 ? (
-        <p className="px-5 py-8 text-sm text-gray-400 text-center">Sistemde ürün bulunmuyor.</p>
+      {loadError ? (
+        <p className="px-5 py-8 text-sm text-red-600 text-center">{loadError}</p>
+      ) : products.length === 0 ? (
+        <p className="px-5 py-8 text-sm text-gray-400 text-center">
+          Aktif ürün yok. Önce Menü Yönetimi&apos;nden ürün ekleyin; sonra burada bayiye özel fiyat
+          tanımlayabilirsiniz.
+        </p>
       ) : (
         <StackTableWrap>
           <table className={stackTableClass()}>
