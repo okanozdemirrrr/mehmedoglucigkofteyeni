@@ -23,6 +23,7 @@ const AccountSettings = lazyWithRetry(() => import('./pages/AccountSettings'), '
 const Gizlilik = lazyWithRetry(() => import('./pages/Gizlilik'), 'Gizlilik')
 const ProductCatalog = lazyWithRetry(() => import('./pages/ProductCatalog'), 'Ürün vitrini')
 const ProductDetail = lazyWithRetry(() => import('./pages/ProductDetail'), 'Ürün detayı')
+const SifreYenile = lazyWithRetry(() => import('./pages/SifreYenile'), 'Şifre yenile')
 
 function PageFallback() {
   return (
@@ -93,6 +94,7 @@ export default function App() {
           <Route path="/urunler" element={<ProductCatalog />} />
           <Route path="/urunler/:productId" element={<ProductDetail />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/sifre-yenile" element={<SifreYenile />} />
           <Route path="/bayi-basvuru" element={<BayiBasvuru />} />
           <Route path="/gizlilik" element={<Gizlilik />} />
 
