@@ -143,8 +143,7 @@ export default function SifreYenile() {
                 sıfırlama bağlantısı isteyin.
               </p>
               <Link
-                to="/login"
-                state={{ openForgot: true }}
+                to="/sifremi-unuttum"
                 className="block w-full min-h-11 text-center py-2.5 text-sm font-medium text-white bg-[#580F1C] rounded-sm hover:bg-[#3d0a13] transition-colors"
               >
                 Yeni bağlantı iste

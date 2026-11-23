@@ -50,6 +50,13 @@ async function mockRecover(page, { status = 200, body = {} } = {}) {
   })
 }
 
+async function openForgotFromLogin(page) {
+  await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' })
+  const link = page.getByRole('link', { name: 'Şifremi unuttum?' })
+  await link.click()
+  await page.waitForURL('**/sifremi-unuttum**', { timeout: 8000 })
+}
+
 async function main() {
   if (!existsSync(resolve(process.cwd(), 'dist/index.html'))) {
     throw new Error('Önce npm run build çalıştırın (dist yok).')
@@ -67,11 +74,26 @@ async function main() {
     await waitForServer(BASE)
     const browser = await chromium.launch({ headless: true })
 
+    // 0) Login’de bağlantı var → /sifremi-unuttum
+    {
+      const page = await browser.newPage()
+      await openForgotFromLogin(page)
+      log(page.url().includes('/sifremi-unuttum'), 'Login → /sifremi-unuttum açılıyor')
+      await page.locator('#forgot-email').waitFor({ timeout: 10000 })
+      const hasForgotField = (await page.locator('#forgot-email').count()) > 0
+      const hasLoginPassword = (await page.locator('#password').count()) > 0
+      const hasLoginRole = (await page.getByText('Giriş tipi').count()) > 0
+      log(
+        hasForgotField && !hasLoginPassword && !hasLoginRole,
+        'Şifremi unuttum sayfasında giriş formu yok'
+      )
+      await page.close()
+    }
+
     // 1) Form doğrulama — geçersiz e-posta
     {
       const page = await browser.newPage()
-      await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' })
-      await page.getByRole('button', { name: 'Şifremi unuttum' }).click()
+      await page.goto(`${BASE}/sifremi-unuttum`, { waitUntil: 'networkidle' })
       await page.locator('#forgot-email').fill('degil-email')
       await page.getByRole('button', { name: 'Sıfırlama bağlantısı gönder' }).click()
       const err = page.locator('text=Geçerli bir e-posta adresi girin')
@@ -79,21 +101,20 @@ async function main() {
       await page.close()
     }
 
-    // 2) Başarı mesajı (mock 200) — hesap sızdırmaz metin
+    // 2) Başarı ekranı (mock 200) + tekrar gönder sayacı
     {
       const page = await browser.newPage()
       await mockRecover(page, { status: 200, body: {} })
-      await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' })
-      await page.getByRole('button', { name: 'Şifremi unuttum' }).click()
+      await page.goto(`${BASE}/sifremi-unuttum`, { waitUntil: 'networkidle' })
       await page.locator('#forgot-email').fill('ornek@firma.com')
       await page.getByRole('button', { name: 'Sıfırlama bağlantısı gönder' }).click()
-      const okMsg = page.locator(
-        'text=Bu e-posta kayıtlıysa şifre sıfırlama bağlantısı gönderildi'
-      )
+      const okMsg = page.locator('text=E-postanızı kontrol edin')
       await okMsg.waitFor({ timeout: 8000 })
-      log((await okMsg.count()) > 0, 'Başarı mesajı (hesap sızdırmaz)')
+      log((await okMsg.count()) > 0, 'Başarı ekranı (hesap sızdırmaz)')
+      const leak = page.locator('text=kayıtlı değil')
+      log((await leak.count()) === 0, 'Hesap varlığı sızmıyor')
       const cooldown = page.getByRole('button', { name: /Tekrar gönder/ })
-      log((await cooldown.count()) > 0, '60 sn bekleme kilidi görünür')
+      log((await cooldown.count()) > 0, 'Tekrar gönder sayacı görünür')
       await page.close()
     }
 
@@ -104,8 +125,7 @@ async function main() {
         status: 429,
         body: { message: 'email rate limit exceeded', error: 'over_email_send_rate_limit' },
       })
-      await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' })
-      await page.getByRole('button', { name: 'Şifremi unuttum' }).click()
+      await page.goto(`${BASE}/sifremi-unuttum`, { waitUntil: 'networkidle' })
       await page.locator('#forgot-email').fill('ornek@firma.com')
       await page.getByRole('button', { name: 'Sıfırlama bağlantısı gönder' }).click()
       const rate = page.locator('text=Çok sık denediniz, biraz sonra tekrar deneyin')
@@ -114,7 +134,7 @@ async function main() {
       await page.close()
     }
 
-    // 4) /sifre-yenile geçersiz token
+    // 4) /sifre-yenile geçersiz token → Yeni bağlantı iste → /sifremi-unuttum
     {
       const page = await browser.newPage()
       await page.goto(`${BASE}/sifre-yenile`, { waitUntil: 'networkidle' })
@@ -122,14 +142,15 @@ async function main() {
       await invalid.waitFor({ timeout: 10000 })
       log((await invalid.count()) > 0, '/sifre-yenile geçersiz bağlantı ekranı')
       const link = page.getByRole('link', { name: 'Yeni bağlantı iste' })
-      log((await link.count()) > 0, 'Yeni bağlantı iste yönlendirmesi')
+      await link.click()
+      await page.waitForURL('**/sifremi-unuttum**', { timeout: 8000 })
+      log(page.url().includes('/sifremi-unuttum'), 'Yeni bağlantı iste → /sifremi-unuttum')
       await page.close()
     }
 
-    // 5) Eşleşmeyen şifre (sahte recovery JWT + user mock)
+    // 5) Eşleşmeyen şifre (sahte recovery JWT)
     {
       const page = await browser.newPage()
-      // minimal JWT (header.payload.sig) — supabase istemcisi biçim bekleyebilir
       const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
       const payload = Buffer.from(
         JSON.stringify({
@@ -202,27 +223,29 @@ async function main() {
       await page.close()
     }
 
-    // 6) Giriş ekranı hâlâ açılıyor (akış bozulmadı)
+    // 6) Giriş ekranı sade (inline panel yok)
     {
       const page = await browser.newPage()
       await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' })
       const email = page.locator('#email')
       const submit = page.getByRole('button', { name: /Girişi$/ })
-      log((await email.count()) > 0 && (await submit.count()) > 0, 'Mevcut giriş formu sağlam')
+      const forgotLink = page.getByRole('link', { name: 'Şifremi unuttum?' })
+      const inlinePanel = page.locator('text=Sıfırlama bağlantısı gönder')
+      log(
+        (await email.count()) > 0 && (await submit.count()) > 0 && (await forgotLink.count()) > 0,
+        'Mevcut giriş formu + Şifremi unuttum? linki'
+      )
+      log((await inlinePanel.count()) === 0, 'Login’de inline sıfırlama paneli yok')
       await page.close()
     }
 
-    // 7) Statik gizlilik/destek bozulmadı
+    // 7) Statik gizlilik/destek
     {
       const page = await browser.newPage()
-      const g = await page.goto(`${BASE}/gizlilik.html`, { waitUntil: 'domcontentloaded' })
-      const d = await page.goto(`${BASE}/destek.html`, { waitUntil: 'domcontentloaded' })
-      log(g?.ok() && (await page.content()).includes('Destek'), 'destek.html erişilebilir')
+      await page.goto(`${BASE}/destek.html`, { waitUntil: 'domcontentloaded' })
+      log((await page.content()).includes('Destek'), 'destek.html erişilebilir')
       await page.goto(`${BASE}/gizlilik.html`, { waitUntil: 'domcontentloaded' })
-      log(
-        Boolean(d?.ok()) && (await page.content()).includes('Gizlilik'),
-        'gizlilik.html erişilebilir'
-      )
+      log((await page.content()).includes('Gizlilik'), 'gizlilik.html erişilebilir')
       await page.close()
     }
 

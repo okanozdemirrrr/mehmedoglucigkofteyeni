@@ -2,19 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Building2, Store } from 'lucide-react'
 import { useAuth } from '../store/useAuth'
-import { SUPPORT_EMAIL, getPasswordResetRedirectTo } from '../lib/appConfig'
-import { supabase } from '../lib/supabaseClient'
-import { withTimeout } from '../lib/recoveryAuth'
+import { SUPPORT_EMAIL } from '../lib/appConfig'
 import logoYuvarlak from '../assets/logo-yuvarlak.webp'
-
-const RESET_COOLDOWN_SEC = 60
-const RESET_TIMEOUT_MS = 15000
-const RESET_SUCCESS_MSG =
-  'Bu e-posta kayıtlıysa şifre sıfırlama bağlantısı gönderildi. Spam klasörünü de kontrol edin.'
-
-function isValidEmail(value) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim())
-}
 
 function mapAuthError(err) {
   const msg = String(err?.message || '').toLowerCase()
@@ -60,12 +49,6 @@ export default function Login() {
   const [notice, setNotice] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [isExiting, setIsExiting] = useState(false)
-  const [forgotOpen, setForgotOpen] = useState(false)
-  const [forgotEmail, setForgotEmail] = useState('')
-  const [forgotError, setForgotError] = useState('')
-  const [forgotNotice, setForgotNotice] = useState('')
-  const [forgotSubmitting, setForgotSubmitting] = useState(false)
-  const [forgotCooldownLeft, setForgotCooldownLeft] = useState(0)
   const { signIn, signOut, profile, loading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -81,30 +64,13 @@ export default function Login() {
       setError('Hesabınız henüz onaylanmamıştır')
       void signOut()
     }
-    if (location.state?.openForgot) {
-      setForgotOpen(true)
-      setForgotEmail((prev) => prev || '')
-    }
-    if (
-      location.state?.notice ||
-      location.state?.pendingBlocked ||
-      location.state?.preferredRole ||
-      location.state?.openForgot
-    ) {
+    if (location.state?.notice || location.state?.pendingBlocked || location.state?.preferredRole) {
       navigate(location.pathname, {
         replace: true,
         state: location.state?.from ? { from: location.state.from } : {},
       })
     }
   }, [location, navigate, signOut])
-
-  useEffect(() => {
-    if (forgotCooldownLeft <= 0) return undefined
-    const id = window.setInterval(() => {
-      setForgotCooldownLeft((s) => (s <= 1 ? 0 : s - 1))
-    }, 1000)
-    return () => window.clearInterval(id)
-  }, [forgotCooldownLeft])
 
   useEffect(() => {
     if (!loading && profile) {
@@ -188,92 +154,6 @@ export default function Login() {
     }, 300)
   }
 
-  function openForgot() {
-    setForgotOpen(true)
-    setForgotError('')
-    setForgotNotice('')
-    setForgotEmail((prev) => prev || email || '')
-  }
-
-  function closeForgot() {
-    setForgotOpen(false)
-    setForgotError('')
-    setForgotNotice('')
-  }
-
-  async function handleForgotSubmit(e) {
-    e.preventDefault()
-    setForgotError('')
-    setForgotNotice('')
-
-    const trimmed = String(forgotEmail || '').trim().toLowerCase()
-    if (!isValidEmail(trimmed)) {
-      setForgotError('Geçerli bir e-posta adresi girin.')
-      return
-    }
-
-    const redirectTo = getPasswordResetRedirectTo()
-    if (!redirectTo) {
-      setForgotError(
-        'Şifre sıfırlama için web adresi yapılandırılmamış. Lütfen tarayıcıdan deneyin veya destek ile iletişime geçin.'
-      )
-      return
-    }
-
-    if (!supabase) {
-      setForgotError('Sunucuya bağlanılamadı, lütfen tekrar deneyin.')
-      return
-    }
-
-    if (forgotCooldownLeft > 0) return
-
-    setForgotSubmitting(true)
-    try {
-      const { error: resetError } = await withTimeout(
-        supabase.auth.resetPasswordForEmail(trimmed, { redirectTo }),
-        RESET_TIMEOUT_MS
-      )
-
-      if (resetError) {
-        const status = resetError.status || resetError.code
-        const msg = String(resetError.message || '').toLowerCase()
-        if (
-          status === 429 ||
-          msg.includes('rate limit') ||
-          msg.includes('too many') ||
-          msg.includes('email rate limit')
-        ) {
-          setForgotError('Çok sık denediniz, biraz sonra tekrar deneyin.')
-        } else {
-          // Hesap varlığını sızdırma: ağ/sunucu hataları dışında da aynı başarı mesajı
-          if (
-            msg.includes('failed to fetch') ||
-            msg.includes('network') ||
-            msg.includes('fetch')
-          ) {
-            setForgotError('Sunucuya bağlanılamadı, lütfen tekrar deneyin.')
-          } else {
-            setForgotNotice(RESET_SUCCESS_MSG)
-            setForgotCooldownLeft(RESET_COOLDOWN_SEC)
-          }
-        }
-        return
-      }
-
-      setForgotNotice(RESET_SUCCESS_MSG)
-      setForgotCooldownLeft(RESET_COOLDOWN_SEC)
-    } catch (err) {
-      const msg = String(err?.message || '')
-      if (msg.includes('zaman aşımı')) {
-        setForgotError(msg)
-      } else {
-        setForgotError('Sunucuya bağlanılamadı, lütfen tekrar deneyin.')
-      }
-    } finally {
-      setForgotSubmitting(false)
-    }
-  }
-
   if (loading || (profile && profile.status === 'APPROVED')) {
     return (
       <div className="h-dvh min-h-screen flex items-center justify-center overflow-hidden bg-[#580F1C]">
@@ -352,9 +232,17 @@ export default function Login() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-xs font-medium text-gray-700 mb-1">
-                Şifre
-              </label>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <label htmlFor="password" className="block text-xs font-medium text-gray-700">
+                  Şifre
+                </label>
+                <Link
+                  to="/sifremi-unuttum"
+                  className="text-xs text-[#580F1C] hover:text-[#3d0a13] underline underline-offset-2 transition-colors shrink-0"
+                >
+                  Şifremi unuttum?
+                </Link>
+              </div>
               <input
                 id="password"
                 type="password"
@@ -389,80 +277,6 @@ export default function Login() {
                   : 'Bayi Girişi'}
             </button>
           </form>
-
-          <div className="mt-3 text-center">
-            {!forgotOpen ? (
-              <button
-                type="button"
-                onClick={openForgot}
-                className="min-h-11 px-2 text-sm font-medium text-[#580F1C] underline underline-offset-2 hover:text-[#3d0a13] transition-colors"
-              >
-                Şifremi unuttum
-              </button>
-            ) : (
-              <form
-                onSubmit={handleForgotSubmit}
-                noValidate
-                className="text-left space-y-3 pt-2 border-t border-gray-100"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-medium text-gray-700">Şifre sıfırlama</p>
-                  <button
-                    type="button"
-                    onClick={closeForgot}
-                    className="min-h-11 px-2 text-xs text-gray-400 hover:text-gray-600"
-                  >
-                    Kapat
-                  </button>
-                </div>
-                <p className="text-[11px] text-gray-500 leading-relaxed">
-                  Kayıtlı e-posta adresinize sıfırlama bağlantısı gönderilir. Bayi ve dağıtıcı
-                  hesapları aynı akışı kullanır.
-                </p>
-                <div>
-                  <label
-                    htmlFor="forgot-email"
-                    className="block text-xs font-medium text-gray-700 mb-1"
-                  >
-                    E-posta
-                  </label>
-                  <input
-                    id="forgot-email"
-                    type="email"
-                    autoComplete="email"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    required
-                    className="w-full px-3 py-2.5 text-base md:text-sm border border-gray-300 rounded-sm focus:outline-none focus:border-[#580F1C] focus:ring-1 focus:ring-[#580F1C]"
-                    placeholder="ornek@firma.com"
-                  />
-                </div>
-
-                {forgotNotice && (
-                  <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-sm px-3 py-2">
-                    {forgotNotice}
-                  </p>
-                )}
-                {forgotError && (
-                  <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-sm px-3 py-2">
-                    {forgotError}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={forgotSubmitting || forgotCooldownLeft > 0}
-                  className="w-full min-h-11 py-2.5 text-sm font-medium text-white bg-[#580F1C] rounded-sm hover:bg-[#3d0a13] disabled:opacity-50 transition-colors"
-                >
-                  {forgotSubmitting
-                    ? 'Gönderiliyor...'
-                    : forgotCooldownLeft > 0
-                      ? `Tekrar gönder (${forgotCooldownLeft} sn)`
-                      : 'Sıfırlama bağlantısı gönder'}
-                </button>
-              </form>
-            )}
-          </div>
 
           {loginRole === 'DEALER' && (
             <p className="text-center mt-5 pt-4 border-t border-gray-100">
