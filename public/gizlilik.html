@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Mehmedoğlu B2B gizlilik politikası" />
+  <title>Gizlilik Politikası — Mehmedoğlu B2B</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #f9fafb;
+      color: #374151;
+      line-height: 1.55;
+      -webkit-text-size-adjust: 100%;
+      padding: max(1.5rem, env(safe-area-inset-top)) 1rem max(2rem, env(safe-area-inset-bottom));
+    }
+    .wrap { max-width: 48rem; margin: 0 auto; }
+    .nav { margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+    .nav a { color: #9ca3af; font-size: 0.75rem; text-decoration: none; }
+    .nav a:hover { color: #4b5563; }
+    .card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 2px;
+      padding: 1.5rem;
+    }
+    @media (min-width: 640px) { .card { padding: 2rem; } }
+    h1 { margin: 0 0 1.5rem; font-size: 1.25rem; color: #111827; font-weight: 600; }
+    h2 { margin: 0 0 0.5rem; font-size: 0.875rem; color: #111827; font-weight: 600; }
+    p, li { font-size: 0.875rem; }
+    p { margin: 0 0 1rem; }
+    ul { margin: 0 0 1rem; padding-left: 1.25rem; }
+    li { margin-bottom: 0.25rem; }
+    section { margin-bottom: 1.25rem; }
+    a.mail { color: #580F1C; font-weight: 500; text-underline-offset: 2px; }
+    .meta { font-size: 0.75rem; color: #9ca3af; margin: 0 0 1.25rem; }
+    .foot {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #f3f4f6;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav">
+      <a href="/destek.html">Destek</a>
+    </nav>
+    <article class="card">
+      <h1>Gizlilik Politikası</h1>
+      <p class="meta">Son güncelleme: 23 Kasım 2026</p>
+
+      <p>
+        Mehmedoğlu B2B Sipariş Yönetimi (Regon / Mergen) uygulaması, yalnızca yetkili
+        bayilerin kullanımına özel kurumsal bir platformdur. Bu politika, uygulamada
+        hangi kişisel verilerin işlendiğini ve haklarınızı açıklar.
+      </p>
+
+      <section>
+        <h2>Toplanan veriler</h2>
+        <ul>
+          <li>Kimlik ve iletişim: ad soyad, e-posta, telefon</li>
+          <li>Başvuru / bayi bilgileri: yaş, il, ilçe, vergi no, adres</li>
+          <li>Hesap güvenliği: şifre (hash’lenerek saklanır)</li>
+          <li>Sipariş ve cari hareket kayıtları (iş süreçleri için)</li>
+          <li>Bildirim token’ı (FCM / APNs): yalnızca push bildirimleri göndermek için</li>
+          <li>Oturum ve teknik log kayıtları (güvenlik / hata ayıklama)</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Kullanım amacı</h2>
+        <p>
+          Veriler yalnızca uygulama işlevselliği (bayi onayı, sipariş yönetimi, cari takip,
+          destek) ve yasal yükümlülükler için işlenir. Reklam, profilleme veya çapraz
+          uygulama takibi yapılmaz; verileriniz üçüncü şahıslara satılmaz.
+        </p>
+      </section>
+
+      <section>
+        <h2>Saklama yeri ve üçüncü taraf hizmetler</h2>
+        <p>
+          Veriler Supabase altyapısında (Avrupa / Frankfurt bölgesi) saklanır. Push
+          bildirimleri için Firebase Cloud Messaging (FCM) ve Apple Push Notification
+          service (APNs) yalnızca bildirim iletimi amacıyla kullanılır. Bu hizmetler
+          kendi gizlilik politikalarına tabidir; uygulama bu amaçlarla sınırlı veri
+          paylaşır.
+        </p>
+      </section>
+
+      <section>
+        <h2>Saklama süresi</h2>
+        <p>
+          Hesap aktif olduğu sürece veriler tutulur. Hesap silindiğinde kişisel bilgiler
+          silinir veya anonimleştirilir. Muhasebe / sipariş geçmişi gibi yasal saklama
+          gerektiren kayıtlar, kişisel kimlikten arındırılarak makul süreyle tutulabilir.
+        </p>
+      </section>
+
+      <section>
+        <h2>Hesap silme</h2>
+        <p>
+          Giriş yaptıktan sonra Hesap Ayarları → Hesabımı Sil yoluyla hesabınızı
+          silebilirsiniz. Bu işlem geri alınamaz. Alternatif olarak
+          <a class="mail" href="mailto:regoniletisim@gmail.com">regoniletisim@gmail.com</a>
+          adresine yazabilirsiniz; talepler 7 iş günü içinde işleme alınır.
+        </p>
+      </section>
+
+      <section>
+        <h2>Haklarınız</h2>
+        <p>
+          Kişisel verilerinize erişme, düzeltme, silme ve işlemeye itiraz etme haklarınız
+          vardır. Taleplerinizi destek e-postası üzerinden iletebilirsiniz.
+        </p>
+      </section>
+
+      <p class="foot">
+        Uygulama destek, şikayet ve hesap silme talepleriniz için:
+        <a class="mail" href="mailto:regoniletisim@gmail.com">regoniletisim@gmail.com</a>
+      </p>
+    </article>
+  </div>
+</body>
+</html>

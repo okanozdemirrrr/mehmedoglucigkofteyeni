@@ -15,7 +15,8 @@ export default function Gizlilik() {
         </Link>
 
         <div className="bg-white border border-gray-200 rounded-sm p-6 sm:p-8">
-          <h1 className="text-xl font-semibold text-gray-900 mb-6">Gizlilik Politikası</h1>
+          <h1 className="text-xl font-semibold text-gray-900 mb-2">Gizlilik Politikası</h1>
+          <p className="text-xs text-gray-400 mb-6">Son güncelleme: 23 Kasım 2026</p>
 
           <div className="prose prose-sm text-gray-700 leading-relaxed space-y-4">
             <p>
@@ -41,10 +42,30 @@ export default function Gizlilik() {
             <div>
               <h2 className="text-sm font-semibold text-gray-900 mb-2">Kullanım amacı</h2>
               <p>
-                Veriler bayi onayı, sipariş yönetimi, cari takip, destek ve yasal
-                yükümlülükler için işlenir. Verileriniz üçüncü şahıslara satılmaz. Push
-                altyapısı (ör. Apple / Google bildirim servisleri) yalnızca bildirim
-                iletimi için kullanılır.
+                Veriler yalnızca uygulama işlevselliği (bayi onayı, sipariş yönetimi, cari
+                takip, destek) ve yasal yükümlülükler için işlenir. Reklam, profilleme veya
+                çapraz uygulama takibi yapılmaz; verileriniz üçüncü şahıslara satılmaz.
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900 mb-2">
+                Saklama yeri ve üçüncü taraf hizmetler
+              </h2>
+              <p>
+                Veriler Supabase altyapısında (Avrupa / Frankfurt bölgesi) saklanır. Push
+                bildirimleri için Firebase Cloud Messaging (FCM) ve Apple Push Notification
+                service (APNs) yalnızca bildirim iletimi amacıyla kullanılır.
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900 mb-2">Saklama süresi</h2>
+              <p>
+                Hesap aktif olduğu sürece veriler tutulur. Hesap silindiğinde kişisel
+                bilgiler silinir veya anonimleştirilir. Muhasebe / sipariş geçmişi gibi
+                yasal saklama gerektiren kayıtlar kişisel kimlikten arındırılarak
+                tutulabilir.
               </p>
             </div>
 
@@ -52,10 +73,7 @@ export default function Gizlilik() {
               <h2 className="text-sm font-semibold text-gray-900 mb-2">Hesap silme</h2>
               <p>
                 Giriş yaptıktan sonra Hesap Ayarları → Hesabımı Sil yoluyla hesabınızı
-                silebilirsiniz.{' '} Bu işlem geri alınamaz; kişisel
-                bilgileriniz silinir veya anonimleştirilir. Muhasebe / sipariş geçmişi gibi
-                yasal saklama gerektiren kayıtlar kişisel kimlikten arındırılarak
-                tutulabilir. Alternatif olarak{' '}
+                silebilirsiniz. Bu işlem geri alınamaz. Alternatif olarak{' '}
                 <a
                   href={`mailto:${SUPPORT_EMAIL}`}
                   className="text-[#580F1C] font-medium underline underline-offset-2"
@@ -66,6 +84,14 @@ export default function Gizlilik() {
               </p>
             </div>
 
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900 mb-2">Haklarınız</h2>
+              <p>
+                Kişisel verilerinize erişme, düzeltme, silme ve işlemeye itiraz etme
+                haklarınız vardır. Taleplerinizi destek e-postası üzerinden iletebilirsiniz.
+              </p>
+            </div>
+
             <p className="pt-4 border-t border-gray-100 text-sm text-gray-700">
               Uygulama destek, şikayet ve hesap silme talepleriniz için bize ulaşın:{' '}
               <a
@@ -73,6 +99,18 @@ export default function Gizlilik() {
                 className="text-[#580F1C] font-medium underline underline-offset-2 hover:text-[#3d0a13]"
               >
                 {SUPPORT_EMAIL}
+              </a>
+            </p>
+
+            <p className="text-xs text-gray-400">
+              Bu politikanın web sürümü:{' '}
+              <a
+                href="/gizlilik.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 hover:text-gray-600"
+              >
+                /gizlilik.html
               </a>
             </p>
           </div>

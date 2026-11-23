@@ -70,9 +70,10 @@
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Ürün görsellerini menüye eklemek için fotoğraf kütüphanenize erişmemiz gerekir.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Ürün görsellerini kaydetmek için fotoğraf kütüphanenize yazma izni gerekir.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Ürün fotoğrafı çekmek için kameraya erişmemiz gerekir.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
+

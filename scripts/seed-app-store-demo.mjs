@@ -6,10 +6,12 @@
  *   SUPABASE_SERVICE_ROLE_KEY  (Dashboard → Settings → API → service_role)
  *   DEMO_ADMIN_PASSWORD
  *   DEMO_DEALER_PASSWORD
+ *   DEMO_DELETE_PASSWORD   (silinebilir inceleme hesabı; seed yeniden çalıştırılabilir)
  *
  * Opsiyonel:
- *   DEMO_ADMIN_EMAIL   (default: review-admin@regonteknoloji.com)
- *   DEMO_DEALER_EMAIL  (default: review-bayi@regonteknoloji.com)
+ *   DEMO_ADMIN_EMAIL    (default: review-admin@regonteknoloji.com)
+ *   DEMO_DEALER_EMAIL   (default: review-bayi@regonteknoloji.com)
+ *   DEMO_DELETE_EMAIL   (default: review-delete@regonteknoloji.com)
  *
  * Çalıştır: node scripts/seed-app-store-demo.mjs
  * Şifreleri asla commit etme.
@@ -45,8 +47,12 @@ const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 const adminEmail = (process.env.DEMO_ADMIN_EMAIL || 'review-admin@regonteknoloji.com').toLowerCase()
 const dealerEmail = (process.env.DEMO_DEALER_EMAIL || 'review-bayi@regonteknoloji.com').toLowerCase()
+const deleteEmail = (
+  process.env.DEMO_DELETE_EMAIL || 'review-delete@regonteknoloji.com'
+).toLowerCase()
 const adminPassword = process.env.DEMO_ADMIN_PASSWORD
 const dealerPassword = process.env.DEMO_DEALER_PASSWORD
+const deletePassword = process.env.DEMO_DELETE_PASSWORD
 
 if (!url) {
   console.error('Eksik: VITE_SUPABASE_URL (veya SUPABASE_URL)')
@@ -60,11 +66,17 @@ if (!serviceKey) {
   )
   process.exit(1)
 }
-if (!adminPassword || !dealerPassword) {
-  console.error('Eksik: DEMO_ADMIN_PASSWORD ve DEMO_DEALER_PASSWORD gerekli.')
+if (!adminPassword || !dealerPassword || !deletePassword) {
+  console.error(
+    'Eksik: DEMO_ADMIN_PASSWORD, DEMO_DEALER_PASSWORD ve DEMO_DELETE_PASSWORD gerekli.'
+  )
   process.exit(1)
 }
-if (adminPassword.length < 8 || dealerPassword.length < 8) {
+if (
+  adminPassword.length < 8 ||
+  dealerPassword.length < 8 ||
+  deletePassword.length < 8
+) {
   console.error('Demo şifreleri en az 8 karakter olmalı.')
   process.exit(1)
 }
@@ -230,8 +242,7 @@ async function ensureProducts(catIds) {
   return productIds
 }
 
-async function ensureDealer() {
-  const name = 'App Store Review Bayi'
+async function ensureDealerByName(name, extras = {}) {
   const { data: existing } = await admin.from('dealers').select('id').eq('name', name).maybeSingle()
   if (existing) return existing.id
 
@@ -239,9 +250,9 @@ async function ensureDealer() {
     .from('dealers')
     .insert({
       name,
-      tax_no: '1111111111',
-      phone: '0555 000 00 01',
-      address: 'İstanbul / Kadıköy (Demo)',
+      tax_no: extras.tax_no || '1111111111',
+      phone: extras.phone || '0555 000 00 01',
+      address: extras.address || 'İstanbul / Kadıköy (Demo)',
     })
     .select('id')
     .single()
@@ -249,18 +260,46 @@ async function ensureDealer() {
   return data.id
 }
 
-async function markProfile({ userId, role, status, fullName, dealerId, email }) {
+async function ensureDealer() {
+  return ensureDealerByName('App Store Review Bayi', {
+    tax_no: '1111111111',
+    phone: '0555 000 00 01',
+    address: 'İstanbul / Kadıköy (Demo)',
+  })
+}
+
+/** Silinebilir inceleme hesabı için ayrı bayi (is_demo=false profil) */
+async function ensureDeleteDealer() {
+  return ensureDealerByName('App Store Review Silme Test Bayi', {
+    tax_no: '2222222222',
+    phone: '0555 000 00 03',
+    address: 'İstanbul / Üsküdar (Silme Test)',
+  })
+}
+
+async function markProfile({
+  userId,
+  role,
+  status,
+  fullName,
+  dealerId,
+  email,
+  isDemo = true,
+  phone,
+  taxNo,
+  district,
+}) {
   const payload = {
     full_name: fullName,
     role,
     status,
     dealer_id: role === 'DEALER' ? dealerId : null,
     email,
-    phone: role === 'DEALER' ? '0555 000 00 01' : '0555 000 00 02',
+    phone: phone || (role === 'DEALER' ? '0555 000 00 01' : '0555 000 00 02'),
     city: role === 'DEALER' ? 'İstanbul' : null,
-    district: role === 'DEALER' ? 'Kadıköy' : null,
-    tax_no: role === 'DEALER' ? '1111111111' : null,
-    is_demo: true,
+    district: role === 'DEALER' ? district || 'Kadıköy' : null,
+    tax_no: role === 'DEALER' ? taxNo || '1111111111' : null,
+    is_demo: Boolean(isDemo),
   }
 
   let { error } = await admin.from('profiles').update(payload).eq('id', userId)
@@ -380,6 +419,7 @@ async function main() {
   const catIds = await ensureCategories()
   const productIds = await ensureProducts(catIds)
   const dealerId = await ensureDealer()
+  const deleteDealerId = await ensureDeleteDealer()
 
   const adminUser = await upsertAuthUser({
     email: adminEmail,
@@ -405,6 +445,23 @@ async function main() {
     },
   })
 
+  // Silinebilir: is_demo=false; silindikten sonra bu seed yeniden oluşturur
+  const deleteUser = await upsertAuthUser({
+    email: deleteEmail,
+    password: deletePassword,
+    role: 'DEALER',
+    status: 'APPROVED',
+    fullName: 'App Store Review Silme Test',
+    meta: {
+      age: '28',
+      city: 'İstanbul',
+      district: 'Üsküdar',
+      tax_no: '2222222222',
+      phone: '0555 000 00 03',
+      dealer_id: deleteDealerId,
+    },
+  })
+
   // Wait briefly for handle_new_user trigger on create
   await new Promise((r) => setTimeout(r, 800))
 
@@ -414,6 +471,7 @@ async function main() {
     status: 'APPROVED',
     fullName: 'App Store Review Admin',
     email: adminEmail,
+    isDemo: true,
   })
 
   await markProfile({
@@ -423,15 +481,31 @@ async function main() {
     fullName: 'App Store Review Bayi',
     dealerId,
     email: dealerEmail,
+    isDemo: true,
+  })
+
+  await markProfile({
+    userId: deleteUser.id,
+    role: 'DEALER',
+    status: 'APPROVED',
+    fullName: 'App Store Review Silme Test',
+    dealerId: deleteDealerId,
+    email: deleteEmail,
+    isDemo: false,
+    phone: '0555 000 00 03',
+    taxNo: '2222222222',
+    district: 'Üsküdar',
   })
 
   await ensureCustomPrices(dealerId, productIds)
+  await ensureCustomPrices(deleteDealerId, productIds)
 
   const orderTest = await testDealerOrder(dealerUser.id)
 
   console.log('\n✓ Demo seed tamamlandı')
   console.log(`  Admin : ${adminEmail}`)
   console.log(`  Bayi  : ${dealerEmail}`)
+  console.log(`  Silme : ${deleteEmail} (is_demo=false, yeniden seed edilebilir)`)
   console.log(`  Ürün  : ${productIds.length} aktif`)
   console.log(
     `  Sipariş testi: ${orderTest.ok ? `OK (order=${orderTest.orderId}, recent_admin_notif≈${orderTest.notifCount})` : `FAIL (${orderTest.reason})`}`
