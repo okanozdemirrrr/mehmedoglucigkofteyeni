@@ -3,8 +3,9 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  // Capacitor iOS/Android: göreli asset yolları (beyaz ekran / chunk 404 önlemi)
-  base: './',
+  // Web (Vercel): mutlak '/' — /admin/... F5'te ./assets 404 olmasın
+  // Capacitor: npm run build:mobile → vite --base ./ ile göreli yol
+  base: '/',
   plugins: [react(), tailwindcss()],
   build: {
     rollupOptions: {
